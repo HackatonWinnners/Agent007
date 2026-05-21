@@ -25,7 +25,10 @@ import { runLoop } from './agent'
 const HERE = dirname(fileURLToPath(import.meta.url))
 
 const args = parseArgs(process.argv.slice(2))
-const specPath = args.spec ?? '../secret_spec/SECRET_SPEC.md'
+// Resolve spec path relative to the process cwd (where the user ran `bun run`),
+// NOT relative to workingRoot. This lets `--spec ../demo/toy_spec.md` work when
+// the agent process runs from agent/ and demo/ is a sibling of agent/.
+const specPath = resolve(process.cwd(), args.spec ?? '../secret_spec/SECRET_SPEC.md')
 const workingRoot = resolve(args.repoRoot ?? '..')
 
 const logger = createLogger(config.logDir)
@@ -82,7 +85,7 @@ setSpawnContext({
   },
 })
 
-const initialUserMessage = `Read the spec at ${resolve(workingRoot, specPath)}. Build the program described under ${config.solutionDir} (default solution/main.py if the spec is silent on filename or language). Pass public tests then harden with self-tests.`
+const initialUserMessage = `Read the spec at ${specPath}. Build the program described under ${config.solutionDir} (default solution/main.py if the spec is silent on filename or language). Pass public tests then harden with self-tests.`
 
 const systemPrompt = buildSystemPrompt({
   cwd: workingRoot,

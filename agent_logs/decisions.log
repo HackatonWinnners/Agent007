@@ -1,1 +1,1 @@
-# decisions.log - populated at runtime by agent/src/logger.ts
+[2026-05-21 18:15:35] DECISION {"iteration":0,"agentId":"root","summary":"tools: read"}
