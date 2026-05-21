@@ -138,16 +138,17 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
     messages.push({ role: 'assistant', content: response.content, toolCalls: response.toolCalls })
 
     if (!response.toolCalls || response.toolCalls.length === 0) {
-      // Heuristic: if the assistant content looks like an XML tool call the
-      // featherless/nvidia parser couldn't extract (truncated, malformed,
-      // mixed with wrappers), DON'T halt. Inject a synthetic user nudge and
-      // continue — the model probably ran out of max_tokens or used an unusual
-      // format. Any sign of `<function=` or `<tool_call>` triggers the retry.
       const c = response.content ?? ''
       const sniffsXmlAttempt =
         c.includes('<function=') ||
         c.includes('<tool_call>') ||
         c.includes('<parameter=')
+      const hasContent = c.trim().length > 0
+
+      // Three cases when assistant returned no tool calls:
+      // 1. XML-format attempt that didn't parse → retry nudge
+      // 2. Plain text "Let me look at..." style stall → action nudge
+      // 3. Truly empty / explicit stop → commit and break
       if (sniffsXmlAttempt) {
         inp.logger.intervention({
           type: 'unparsed-tool-call',
@@ -156,10 +157,27 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
           filesAffected: [],
           touchedFinalCode: false,
         })
-        ui.intervention('unparsed-tool-call', 'XML tool call did not parse; asking model to retry with native function-call format')
+        ui.intervention('unparsed-tool-call', 'XML tool call did not parse; retry')
         messages.push({
           role: 'user',
           content: 'Your previous response contained an XML-style tool call that could not be parsed. Please retry using the standard function-call format (the SDK serializes it automatically). For large rewrites prefer `write(overwrite=true)` over a giant `edit`. Keep individual tool-call arguments short enough to fit in your max_tokens budget.',
+        })
+        ui.closeIter()
+        continue
+      }
+      if (hasContent) {
+        // Model "thinking out loud" without acting. Force it to act.
+        inp.logger.intervention({
+          type: 'thinking-without-action',
+          what: 'assistant returned text but no tool call, injecting action nudge',
+          why: c.slice(0, 200),
+          filesAffected: [],
+          touchedFinalCode: false,
+        })
+        ui.intervention('thinking-without-action', 'model planned but did not act; nudging')
+        messages.push({
+          role: 'user',
+          content: 'You wrote a plan but did not call any tool. Stop narrating and CALL A TOOL NOW. If you intended to read/edit/write/bash, emit the actual function call. Do not call submit_done unless run_tests just reported score >= 140/150.',
         })
         ui.closeIter()
         continue
