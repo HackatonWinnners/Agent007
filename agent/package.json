@@ -1,0 +1,15 @@
+{
+  "name": "needle-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "agent": "bun run src/main.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/bun": "latest",
+    "vitest": "^2.1.0"
+  }
+}
