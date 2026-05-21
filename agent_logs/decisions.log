@@ -1,1 +1,2 @@
 [2026-05-21 18:21:34] DECISION {"iteration":0,"agentId":"root","summary":"tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/demo/toy_spec.md\"})]"}
+[2026-05-21 18:21:38] DECISION {"iteration":1,"agentId":"root","summary":"tools=[load_skill({\"name\":\"spec-parsing\"})]"}
