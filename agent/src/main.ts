@@ -39,10 +39,11 @@ const readFileCache = createReadFileCache()
 const nvidia = createNvidiaClient({ apiKey: config.nvidiaKey, baseUrl: config.nvidiaBaseUrl })
 const featherless = createFeatherlessClient({ apiKey: config.featherlessKey, baseUrl: config.featherlessBaseUrl })
 const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
-// Primary: NVIDIA NIM (fast, OpenAI-compat). Fallback: Featherless (kicks in if
-// NVIDIA exceeds AGENT_PRIMARY_TIMEOUT_MS or returns a hard error).
-const primaryClient = nvidia
-const fallbackClient = featherless
+// NVIDIA NIM was hanging on the real spec (likely cold-start or queue depth on
+// the free tier), so we swapped to Featherless as primary. NVIDIA stays wired
+// as the fallback in case Featherless rate-limits us.
+const primaryClient = featherless
+const fallbackClient = nvidia
 void ollama
 
 // DeepSeek-V4-Pro is tools=False on Featherless — our entire agent depends on
@@ -50,13 +51,13 @@ void ollama
 // without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
 // for everything. Fallback also on Featherless so we don't need Ollama running.
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'qwen/qwen3-coder-480b-a35b-instruct',
-  planner: 'qwen/qwen3-coder-480b-a35b-instruct',
-  tester: 'qwen/qwen3-coder-480b-a35b-instruct',
-  failure_analyst: 'qwen/qwen3-coder-480b-a35b-instruct',
-  self_test_writer: 'qwen/qwen3-coder-480b-a35b-instruct',
-  // Fallback hits Featherless, where the same model uses the capital-cased HF id.
-  fallback: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  primary_coder: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  planner: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  tester: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  failure_analyst: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  self_test_writer: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  // Fallback hits NVIDIA NIM with the lowercase namespaced id.
+  fallback: 'qwen/qwen3-coder-480b-a35b-instruct',
 }
 
 const router = createRouter({
