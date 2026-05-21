@@ -68,25 +68,28 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
     messages.push({ role: 'assistant', content: response.content, toolCalls: response.toolCalls })
 
     if (!response.toolCalls || response.toolCalls.length === 0) {
-      // Heuristic: if the assistant content looks like a truncated XML tool call
-      // (contains <function= or <parameter= without matching close), DON'T halt.
-      // Inject a synthetic user nudge and continue — the model probably ran out
-      // of max_tokens mid-call.
+      // Heuristic: if the assistant content looks like an XML tool call the
+      // featherless/nvidia parser couldn't extract (truncated, malformed,
+      // mixed with wrappers), DON'T halt. Inject a synthetic user nudge and
+      // continue — the model probably ran out of max_tokens or used an unusual
+      // format. Any sign of `<function=` or `<tool_call>` triggers the retry.
       const c = response.content ?? ''
-      const truncatedFn = c.includes('<function=') && !c.includes('</function>')
-      const truncatedParam = c.includes('<parameter=') && !c.includes('</parameter>')
-      if (truncatedFn || truncatedParam) {
+      const sniffsXmlAttempt =
+        c.includes('<function=') ||
+        c.includes('<tool_call>') ||
+        c.includes('<parameter=')
+      if (sniffsXmlAttempt) {
         inp.logger.intervention({
-          type: 'truncated-tool-call',
-          what: 'detected truncated XML tool call in assistant content, injecting retry nudge',
-          why: c.slice(-200),
+          type: 'unparsed-tool-call',
+          what: 'assistant emitted XML-like tool call that produced no callable tool, injecting retry nudge',
+          why: c.slice(-300),
           filesAffected: [],
           touchedFinalCode: false,
         })
-        ui.intervention('truncated-tool-call', 'model output was cut off; retrying with smaller scope hint')
+        ui.intervention('unparsed-tool-call', 'XML tool call did not parse; asking model to retry with native function-call format')
         messages.push({
           role: 'user',
-          content: 'Your previous tool call was truncated (output cut off mid-XML). Retry the same intent but break into smaller steps if you were trying a large edit. Prefer write(overwrite=true) over a giant edit() for big rewrites.',
+          content: 'Your previous response contained an XML-style tool call that could not be parsed. Please retry using the standard function-call format (the SDK serializes it automatically). For large rewrites prefer `write(overwrite=true)` over a giant `edit`. Keep individual tool-call arguments short enough to fit in your max_tokens budget.',
         })
         ui.closeIter()
         continue
