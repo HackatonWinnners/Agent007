@@ -109,11 +109,25 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
     // stays usable on long-running grinds.
     compactMessages(messages, inp.logger, inp.agentId)
 
-    const response = await inp.router.complete({
-      role: inp.role,
-      messages,
-      tools: inp.tools.schemas(),
-    })
+    let response: { content: string | null; toolCalls: ToolCall[] }
+    try {
+      response = await inp.router.complete({
+        role: inp.role,
+        messages,
+        tools: inp.tools.schemas(),
+      })
+    } catch (e) {
+      // Whole router chain failed (all tiers down and final primary retry also
+      // threw). Log, sleep, and try again next iteration instead of crashing.
+      inp.logger.error({
+        where: 'router.complete',
+        message: (e as Error).message?.slice(0, 400) ?? 'unknown',
+      })
+      ui.error('router', `all model providers failed: ${(e as Error).message?.slice(0, 200) ?? 'unknown'}`)
+      ui.closeIter()
+      await new Promise(r => setTimeout(r, 60_000))
+      continue
+    }
 
     const summary = summarize(response.content, response.toolCalls)
     lastSummary = summary
