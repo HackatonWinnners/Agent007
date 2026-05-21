@@ -78,3 +78,4 @@
 [2026-05-21 22:19:26] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
 [2026-05-21 22:19:29] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~52s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-21 22:19:31] INTERVENTION {"type":"fallback-failed","what":"fallback (qwen/qwen3-coder-480b-a35b-instruct) failed, trying next tier","why":"NVIDIA 503: {\"message\":\"ResourceExhausted: All workers are busy, please retry later\",\"type\":\"Service Unavailable\",\"code\":503}","filesAffected":[],"touchedFinalCode":false}
+[2026-05-21 22:19:57] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~24s left after recent 429","filesAffected":[],"touchedFinalCode":false}
