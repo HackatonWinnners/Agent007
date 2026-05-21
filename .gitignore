@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.local
+agent/dist/
+agent/.vitest-cache/
+solution/__pycache__/
+solution/.pytest_cache/
+*.pyc
+.DS_Store

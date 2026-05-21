@@ -1,0 +1,16 @@
+{
+  "team_name": "TBD",
+  "primary_model": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+  "provider": "Featherless (free 3-day trial)",
+  "runtime_or_tool": "custom TypeScript/Bun agent",
+  "additional_models": [
+    {"model": "zai-org/GLM-4.6", "provider": "Featherless", "purpose": "planning, failure analysis"},
+    {"model": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "provider": "Featherless", "purpose": "lightweight parsing"},
+    {"model": "qwen2.5-coder:7b", "provider": "Ollama (local)", "purpose": "fallback if Featherless degrades"}
+  ],
+  "paid_frontier_models_used_after_spec_release": false,
+  "copilot_or_paid_ide_assistant_used_after_spec_release": false,
+  "institutional_or_work_model_quota_used_after_spec_release": false,
+  "model_configuration_location": "agent/src/main.ts (MODELS constant)",
+  "notes": "Featherless trial does not require payment during the 3-day window. Disclosure made in good faith. Leaked Claude Code source was studied as an architectural reference and is NOT shipped in this repo; all submitted agent code is original."
+}
