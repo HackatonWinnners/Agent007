@@ -5,30 +5,6 @@ import json
 import os
 import re
 
-def parse_instructions(instruction):
-    """Parse a row instruction string into a list of stitch operations."""
-    # Split the instruction by commas to get individual operations
-    operations = instruction.split(',')
-    parsed_ops = []
-    
-    for op in operations:
-        op = op.strip()
-        # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
-        match = re.match(r'([a-zA-Z]+)(\d*)', op)
-        if match:
-            stitch_type = match.group(1)
-            count = int(match.group(2)) if match.group(2) else 1
-            
-            # Handle special cases for stitch count changes
-            # For example, k2tog decreases by 1 stitch per occurrence
-            # yo and inc increase by 1 stitch per occurrence
-            parsed_ops.append({
-                "stitch": stitch_type,
-                "count": count
-            })
-    
-    return parsed_ops
-
 def parse_knit_file(file_path):
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -93,7 +69,6 @@ def main():
         # Process the rows to get final stitch count
         current_stitches = cast_on
         expanded_rows = []
-        expanded_instructions = []
         expanded_row_index = 1
         
         # First, expand the rows with repeats
@@ -141,7 +116,7 @@ def main():
             
             end_stitches = current_stitches
             
-            expanded_instructions.append({
+            expanded_rows.append({
                 "source_row": row_num,
                 "expanded_row_index": expanded_row_index,
                 "start_stitches": start_stitches,
@@ -157,7 +132,7 @@ def main():
             "cast_on": cast_on,
             "valid": True,
             "errors": [],
-            "expanded_rows": expanded_instructions,
+            "expanded_rows": expanded_rows,
             "final_stitch_count": final_stitch_count,
             "bind_off": bind_off
         }
