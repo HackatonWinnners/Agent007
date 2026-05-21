@@ -34,12 +34,15 @@ const readFileCache = createReadFileCache()
 const featherless = createFeatherlessClient({ apiKey: config.featherlessKey, baseUrl: config.featherlessBaseUrl })
 const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
 
+// DeepSeek-V4-Pro is the smartest but has tools=False on Featherless,
+// so it's only usable for text-only roles (planner, failure_analyst).
+// Tool-using roles need V3.2 which is the newest variant with tools=True.
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  planner: 'zai-org/GLM-4.6',
-  tester: 'Qwen/Qwen3-Coder-30B-A3B-Instruct',
-  failure_analyst: 'zai-org/GLM-4.6',
-  self_test_writer: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  primary_coder: 'deepseek-ai/DeepSeek-V3.2',
+  planner: 'deepseek-ai/DeepSeek-V4-Pro',
+  tester: 'deepseek-ai/DeepSeek-V3.2',
+  failure_analyst: 'deepseek-ai/DeepSeek-V4-Pro',
+  self_test_writer: 'deepseek-ai/DeepSeek-V3.2',
   fallback: 'qwen2.5-coder:7b',
 }
 
