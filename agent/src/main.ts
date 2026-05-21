@@ -69,10 +69,13 @@ const router = createRouter({
     }),
 })
 
+// Minimal root toolset: empirically DeepSeek-V3.2 emits empty tool-call args
+// when given 10+ tools alongside a long system prompt. Cutting to the essential
+// 4 tools fixes that. Add more back via the model's WORKFLOW skills if needed.
 const rootTools = createRegistry([
-  readTool, editTool, writeTool, bashTool, globTool, grepTool,
-  runTestsTool, loadSkillTool, spawnSubagentTool, submitDoneTool,
+  readTool, writeTool, editTool, bashTool, submitDoneTool,
 ])
+void globTool; void grepTool; void runTestsTool; void loadSkillTool; void spawnSubagentTool
 
 const SUBAGENT_TOOLS = {
   planner: createRegistry([readTool, loadSkillTool]),
