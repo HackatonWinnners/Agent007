@@ -70,6 +70,11 @@ export function createFeatherlessClient(opts: { apiKey: string; baseUrl: string 
       }
 
       const msg = data.choices[0]?.message
+      if (process.env.AGENT_DEBUG === '1' && msg?.tool_calls) {
+        for (const tc of msg.tool_calls) {
+          console.error(`[DEBUG] tc raw: ${JSON.stringify(tc).slice(0, 400)}`)
+        }
+      }
       // Some Featherless backends (notably models without proper tool-calling support)
       // return null/missing id and name. Synthesize sane defaults so we can echo
       // a valid assistant message back on the next turn.
