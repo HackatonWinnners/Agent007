@@ -37,6 +37,7 @@ def parse_knit_file(file_path):
     cast_on = None
     bind_off = False
     rows = []
+    repeats = []
     
     for line in lines:
         line = line.strip()
@@ -52,8 +53,28 @@ def parse_knit_file(file_path):
             row_number = int(parts[0].split(' ')[1].rstrip(':'))
             instruction = parts[1] if len(parts) > 1 else ""
             rows.append((row_number, instruction))
+        elif line.startswith('repeat rows '):
+            # Handle repeat rows instruction
+            # Format: repeat rows ROWS xN
+            # Example: repeat rows 01-03 x2
+            parts = line.split(' ')
+            repeat_def = parts[2]  # e.g., "01-03"
+            repeat_count = int(parts[3][1:])  # e.g., "2" from "x2"
+            # Parse the repeat definition
+            if '-' in repeat_def:
+                start_row, end_row = repeat_def.split('-')
+                start_row = int(start_row)
+                end_row = int(end_row)
+            else:
+                start_row = end_row = int(repeat_def)
+            
+            repeats.append({
+                "start_row": start_row,
+                "end_row": end_row,
+                "count": repeat_count
+            })
     
-    return pattern_name, cast_on, bind_off, rows
+    return pattern_name, cast_on, bind_off, rows, repeats
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != "compile":
