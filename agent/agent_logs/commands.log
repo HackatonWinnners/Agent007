@@ -1,0 +1,1 @@
+[2026-05-21 18:13:16] COMMAND {"cmd":"find /Users/madvil2/Projects -name \"toy_spec.md\" -type f 2>/dev/null","exitCode":0,"durationMs":35282,"stdoutTail":"/Users/madvil2/Projects/needle-agent/demo/toy_spec.md\n"}
