@@ -45,31 +45,31 @@ const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
 // previous attempts but vastly faster). NVIDIA NIM and Featherless were both
 // hanging at 120s+ per call on the large spec. Cerebras is primary; NVIDIA
 // stays wired as fallback in case Cerebras rate-limits the free tier.
-const primaryClient = cerebras
-const fallbackClient = nvidia
-void ollama
+// FINAL CONFIG: local Ollama Qwen3-Coder-30B-A3B-Instruct (UD-Q4_K_XL) is
+// primary. Cloud tiers stay wired as fallbacks for resilience.
+const primaryClient = ollama
+const fallbackClient = cerebras
+void nvidia
 
 // DeepSeek-V4-Pro is tools=False on Featherless — our entire agent depends on
 // tool calls (every role's runLoop sends tools), so V4-Pro is unusable here
 // without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
 // for everything. Fallback also on Featherless so we don't need Ollama running.
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'qwen-3-235b-a22b-instruct-2507',
-  planner: 'qwen-3-235b-a22b-instruct-2507',
-  tester: 'qwen-3-235b-a22b-instruct-2507',
-  failure_analyst: 'qwen-3-235b-a22b-instruct-2507',
-  self_test_writer: 'qwen-3-235b-a22b-instruct-2507',
-  // Fallback hits NVIDIA NIM with the lowercase namespaced id.
-  fallback: 'qwen/qwen3-coder-480b-a35b-instruct',
+  primary_coder: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
+  planner: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
+  tester: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
+  failure_analyst: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
+  self_test_writer: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
+  // Fallback hits Cerebras with the strongest model on the free tier.
+  fallback: 'qwen-3-235b-a22b-instruct-2507',
 }
 
 const router = createRouter({
   primary: primaryClient,
   fallback: fallbackClient,
-  // 3rd tier: Featherless with the same Qwen3-Coder-480B model. Kicks in only
-  // when Cerebras AND NVIDIA both 429'd. Each tier has its own rate-limit
-  // budget so chaining 3 multiplies effective throughput.
   extraFallbacks: [
+    { name: 'nvidia', client: nvidia, model: 'qwen/qwen3-coder-480b-a35b-instruct' },
     { name: 'featherless', client: featherless, model: 'Qwen/Qwen3-Coder-480B-A35B-Instruct' },
   ],
   models: MODELS,
