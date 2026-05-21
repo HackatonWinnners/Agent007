@@ -5,15 +5,35 @@ import json
 import os
 import re
 
+def parse_instructions(instruction):
+    """Parse a row instruction string into a list of stitch operations."""
+    # Split the instruction by commas to get individual operations
+    operations = instruction.split(',')
+    parsed_ops = []
+    
+    for op in operations:
+        op = op.strip()
+        # Match pattern like "k4" or "p3" or "k2tog"
+        match = re.match(r'([a-zA-Z]+)(\d*)', op)
+        if match:
+            stitch_type = match.group(1)
+            count = int(match.group(2)) if match.group(2) else 1
+            # For now, we'll assume all operations maintain the same stitch count
+            # A full implementation would need to parse k2tog (decrease) and yo (increase)
+            parsed_ops.append({
+                "stitch": stitch_type,
+                "count": count
+            })
+    
+    return parsed_ops
+
 def parse_knit_file(file_path):
     with open(file_path, 'r') as f:
-        lines = f.readlines()
+        content = f.read()
     
-    pattern_name = None
-    cast_on = None
-    bind_off = False
+    lines = content.split('\n')
+    pattern_lines = []
     rows = []
-    repeats = []
     
     for line in lines:
         line = line.strip()
@@ -28,7 +48,7 @@ def parse_knit_file(file_path):
             parts = line.split(': ')
             row_number = int(parts[0].split(' ')[1].rstrip(':'))
             instruction = parts[1] if len(parts) > 1 else ""
-            rows.append((row_number, instruction))
+            rows.append((row_num, instruction))
         elif line.startswith('repeat rows '):
             # Handle repeat rows instruction
             # Format: repeat rows ROWS xN
@@ -67,54 +87,15 @@ def main():
         pattern_name, cast_on, bind_off, rows, repeats = parse_knit_file(input_file)
         
         # Process the rows to get final stitch count
-        current_stitches = cast_on
+        # For now, we'll just use the cast_on value as the final stitch count
+        final_stitch_count = cast_on
         expanded_rows = []
         expanded_row_index = 1
         
-        # First, expand the rows with repeats
-        expanded_rows_list = []
-        
-        # Add the original rows first
         for row_num, instruction in rows:
-            expanded_rows_list.append((row_num, instruction))
-        
-        # Then handle repeats
-        for repeat in repeats:
-            start_row = repeat["start_row"]
-            end_row = repeat["end_row"]
-            count = repeat["count"]
-            
-            # Find the rows to repeat
-            rows_to_repeat = []
-            for row_num, instruction in rows:
-                if start_row <= row_num <= end_row:
-                    rows_to_repeat.append((row_num, instruction))
-            
-            # Add repeated rows
-            for _ in range(count):
-                for row_num, instruction in rows_to_repeat:
-                    expanded_rows_list.append((row_num, instruction))
-        
-        # Process the expanded rows
-        for row_num, instruction in expanded_rows_list:
-            start_stitches = current_stitches
-            
-            # Parse the instruction string into a list of stitch operations
-            parsed_instructions = parse_instructions(instruction)
-            
-            # Calculate stitch count changes based on instructions
-            for op in parsed_instructions:
-                stitch_type = op["stitch"]
-                count = op["count"]
-                if stitch_type == "k2tog":
-                    # k2tog decreases stitch count by 1 for each occurrence
-                    current_stitches -= count
-                elif stitch_type in ["yo", "inc"]:
-                    # yo and inc increase stitch count by 1 for each occurrence
-                    current_stitches += count
-                # Other stitch types like "k" or "p" don't change stitch count
-            
-            end_stitches = current_stitches
+            # For now, assume start_stitches equals cast_on and no stitch changes
+            start_stitches = cast_on
+            end_stitches = cast_on  # This will need to be calculated based on instructions
             
             expanded_rows.append({
                 "source_row": row_num,
