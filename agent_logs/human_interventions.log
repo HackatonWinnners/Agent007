@@ -2,3 +2,4 @@
 [2026-05-22 01:11:06] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me also check a stitch test:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 01:11:06] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me read one of the bracket test files to understand the expected behavior:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 01:11:08] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me also check a stitch test:\n","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 01:11:10] INTERVENTION {"type":"auto-compaction","what":"squashed 3 old tool_results to 600 chars head+tail","why":"total content ~68340 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
