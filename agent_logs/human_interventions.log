@@ -2,3 +2,4 @@
 [2026-05-21 21:33:04] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~49s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-21 21:33:04] INTERVENTION {"type":"fallback-failed","what":"fallback (qwen/qwen3-coder-480b-a35b-instruct) failed, trying next tier","why":"NVIDIA 429: {\"status\":429,\"title\":\"Too Many Requests\"}","filesAffected":[],"touchedFinalCode":false}
 [2026-05-21 21:33:21] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~32s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-21 21:33:59] INTERVENTION {"type":"auto-compaction","what":"squashed 1 old tool_results to 600 chars head+tail","why":"total content ~71979 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
