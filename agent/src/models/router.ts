@@ -71,15 +71,16 @@ export function createRouter(opts: RouterOptions) {
         temperature: req.temperature,
         maxTokens: req.maxTokens,
       }
-      // If primary is in cooldown (recent 429), bypass it entirely.
+      // If primary is in cooldown (recent 429), bypass it and walk the tier
+      // chain instead.
       if (Date.now() < primaryColdUntil) {
         const msLeft = primaryColdUntil - Date.now()
         opts.onIntervention({
           type: 'primary-cooldown',
-          what: `primary in cooldown, routing ${req.role} via fallback`,
+          what: `primary in cooldown, routing ${req.role} via tier chain`,
           why: `~${Math.ceil(msLeft / 1000)}s left after recent 429`,
         })
-        return opts.fallback.complete({ ...fullRequest, model: opts.models.fallback })
+        return await walkTiers(fullRequest)
       }
       // Race primary attempt sequence against a hard timeout. Whichever resolves
       // first wins; on timeout we fall back to the secondary provider.
@@ -105,33 +106,36 @@ export function createRouter(opts: RouterOptions) {
         why,
       })
 
-      // Chain: fallback first, then extraFallbacks in order.
-      const tiers: { name: string; client: ModelClient; model: string }[] = [
-        { name: 'fallback', client: opts.fallback, model: opts.models.fallback },
-        ...(opts.extraFallbacks ?? []),
-      ]
-      let lastError: Error | null = null
-      for (const tier of tiers) {
-        try {
-          return await tier.client.complete({ ...fullRequest, model: tier.model })
-        } catch (e) {
-          lastError = e as Error
-          opts.onIntervention({
-            type: 'fallback-failed',
-            what: `${tier.name} (${tier.model}) failed, trying next tier`,
-            why: (e as Error).message?.slice(0, 200) ?? 'unknown',
-          })
-        }
-      }
-      // All providers failed. Sleep and retry primary once before giving up.
-      opts.onIntervention({
-        type: 'all-providers-down',
-        what: 'all tiers failed, sleeping 30s before retrying primary',
-        why: lastError?.message?.slice(0, 200) ?? 'unknown',
-      })
-      await new Promise(r => setTimeout(r, 30_000))
-      primaryColdUntil = 0
-      return opts.primary.complete(fullRequest)
+      return await walkTiers(fullRequest)
     },
+  }
+
+  async function walkTiers(fullRequest: Parameters<ModelClient['complete']>[0]): Promise<ChatResponse> {
+    const tiers: { name: string; client: ModelClient; model: string }[] = [
+      { name: 'fallback', client: opts.fallback, model: opts.models.fallback },
+      ...(opts.extraFallbacks ?? []),
+    ]
+    let lastError: Error | null = null
+    for (const tier of tiers) {
+      try {
+        return await tier.client.complete({ ...fullRequest, model: tier.model })
+      } catch (e) {
+        lastError = e as Error
+        opts.onIntervention({
+          type: 'fallback-failed',
+          what: `${tier.name} (${tier.model}) failed, trying next tier`,
+          why: (e as Error).message?.slice(0, 200) ?? 'unknown',
+        })
+      }
+    }
+    // All providers failed. Sleep and retry primary once before giving up.
+    opts.onIntervention({
+      type: 'all-providers-down',
+      what: 'all tiers failed, sleeping 30s before retrying primary',
+      why: lastError?.message?.slice(0, 200) ?? 'unknown',
+    })
+    await new Promise(r => setTimeout(r, 30_000))
+    primaryColdUntil = 0
+    return opts.primary.complete(fullRequest)
   }
 }

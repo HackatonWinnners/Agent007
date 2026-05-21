@@ -2,3 +2,4 @@
 [2026-05-21 21:15:04] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via fallback","why":"~54s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-21 21:15:31] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via fallback","why":"~27s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-21 21:15:48] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via fallback","why":"~11s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-21 21:15:50] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via fallback","why":"~8s left after recent 429","filesAffected":[],"touchedFinalCode":false}
