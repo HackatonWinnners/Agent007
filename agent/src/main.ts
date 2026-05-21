@@ -47,7 +47,7 @@ const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
 // stays wired as fallback in case Cerebras rate-limits the free tier.
 const primaryClient = cerebras
 const fallbackClient = nvidia
-void featherless; void ollama
+void ollama
 
 // DeepSeek-V4-Pro is tools=False on Featherless — our entire agent depends on
 // tool calls (every role's runLoop sends tools), so V4-Pro is unusable here
@@ -66,6 +66,12 @@ const MODELS: Record<RouterRole | 'fallback', string> = {
 const router = createRouter({
   primary: primaryClient,
   fallback: fallbackClient,
+  // 3rd tier: Featherless with the same Qwen3-Coder-480B model. Kicks in only
+  // when Cerebras AND NVIDIA both 429'd. Each tier has its own rate-limit
+  // budget so chaining 3 multiplies effective throughput.
+  extraFallbacks: [
+    { name: 'featherless', client: featherless, model: 'Qwen/Qwen3-Coder-480B-A35B-Instruct' },
+  ],
   models: MODELS,
   primaryTimeoutMs: config.primaryTimeoutMs,
   onIntervention: info =>

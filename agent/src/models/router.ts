@@ -10,9 +10,18 @@ export type RouterRequest = {
   maxTokens?: number
 }
 
+// A tier is one provider+model with its own cooldown.
+export type RouterTier = {
+  name: string
+  client: ModelClient
+  model: string  // for non-primary tiers, overrides MODELS[role]
+}
+
 export type RouterOptions = {
   primary: ModelClient
   fallback: ModelClient
+  // Optional extra fallbacks tried in order when both primary and fallback fail.
+  extraFallbacks?: RouterTier[]
   models: Record<Role | 'fallback', string>
   onIntervention(info: { type: string; what: string; why: string }): void
   retryDelaysMs?: number[]
@@ -95,7 +104,34 @@ export function createRouter(opts: RouterOptions) {
         what: `switched ${req.role} to fallback model ${opts.models.fallback}`,
         why,
       })
-      return opts.fallback.complete({ ...fullRequest, model: opts.models.fallback })
+
+      // Chain: fallback first, then extraFallbacks in order.
+      const tiers: { name: string; client: ModelClient; model: string }[] = [
+        { name: 'fallback', client: opts.fallback, model: opts.models.fallback },
+        ...(opts.extraFallbacks ?? []),
+      ]
+      let lastError: Error | null = null
+      for (const tier of tiers) {
+        try {
+          return await tier.client.complete({ ...fullRequest, model: tier.model })
+        } catch (e) {
+          lastError = e as Error
+          opts.onIntervention({
+            type: 'fallback-failed',
+            what: `${tier.name} (${tier.model}) failed, trying next tier`,
+            why: (e as Error).message?.slice(0, 200) ?? 'unknown',
+          })
+        }
+      }
+      // All providers failed. Sleep and retry primary once before giving up.
+      opts.onIntervention({
+        type: 'all-providers-down',
+        what: 'all tiers failed, sleeping 30s before retrying primary',
+        why: lastError?.message?.slice(0, 200) ?? 'unknown',
+      })
+      await new Promise(r => setTimeout(r, 30_000))
+      primaryColdUntil = 0
+      return opts.primary.complete(fullRequest)
     },
   }
 }
