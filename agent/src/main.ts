@@ -36,22 +36,28 @@ const readFileCache = createReadFileCache()
 
 const featherless = createFeatherlessClient({ apiKey: config.featherlessKey, baseUrl: config.featherlessBaseUrl })
 const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
+// Keep ollama instantiated for the fallback path when the user actually has it,
+// but for this run point fallback at another Featherless model so we don't
+// require a local Ollama daemon.
+const fallbackClient = featherless
+void ollama
 
-// DeepSeek-V4-Pro is the smartest but has tools=False on Featherless,
-// so it's only usable for text-only roles (planner, failure_analyst).
-// Tool-using roles need V3.2 which is the newest variant with tools=True.
+// DeepSeek-V4-Pro is tools=False on Featherless — our entire agent depends on
+// tool calls (every role's runLoop sends tools), so V4-Pro is unusable here
+// without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
+// for everything. Fallback also on Featherless so we don't need Ollama running.
 const MODELS: Record<RouterRole | 'fallback', string> = {
   primary_coder: 'deepseek-ai/DeepSeek-V3.2',
-  planner: 'deepseek-ai/DeepSeek-V4-Pro',
+  planner: 'deepseek-ai/DeepSeek-V3.2',
   tester: 'deepseek-ai/DeepSeek-V3.2',
-  failure_analyst: 'deepseek-ai/DeepSeek-V4-Pro',
+  failure_analyst: 'deepseek-ai/DeepSeek-V3.2',
   self_test_writer: 'deepseek-ai/DeepSeek-V3.2',
-  fallback: 'qwen2.5-coder:7b',
+  fallback: 'deepseek-ai/DeepSeek-V3-0324',
 }
 
 const router = createRouter({
   primary: featherless,
-  fallback: ollama,
+  fallback: fallbackClient,
   models: MODELS,
   onIntervention: info =>
     logger.intervention({

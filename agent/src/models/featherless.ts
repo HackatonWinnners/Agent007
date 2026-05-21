@@ -70,11 +70,16 @@ export function createFeatherlessClient(opts: { apiKey: string; baseUrl: string 
       }
 
       const msg = data.choices[0]?.message
-      const toolCalls: ToolCall[] = (msg?.tool_calls ?? []).map(tc => ({
-        id: tc.id,
-        name: tc.function.name,
-        args: safeJson(tc.function.arguments),
-      }))
+      // Some Featherless backends (notably models without proper tool-calling support)
+      // return null/missing id and name. Synthesize sane defaults so we can echo
+      // a valid assistant message back on the next turn.
+      const toolCalls: ToolCall[] = (msg?.tool_calls ?? [])
+        .filter(tc => tc && tc.function && typeof tc.function.name === 'string' && tc.function.name.length > 0)
+        .map((tc, i) => ({
+          id: typeof tc.id === 'string' && tc.id.length > 0 ? tc.id : `tc-${Date.now()}-${i}`,
+          name: tc.function.name,
+          args: safeJson(tc.function.arguments),
+        }))
 
       return {
         content: msg?.content ?? null,
