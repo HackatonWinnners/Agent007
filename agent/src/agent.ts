@@ -128,7 +128,10 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
 }
 
 function summarize(content: string | null, toolCalls: ToolCall[]): string {
-  if (content && content.length > 0) return content.slice(0, 240).replace(/\s+/g, ' ')
-  if (toolCalls && toolCalls.length > 0) return `tools: ${toolCalls.map(t => t.name).join(',')}`
-  return '(no action)'
+  const trimmed = content?.trim() ?? ''
+  const toolPart = toolCalls && toolCalls.length > 0
+    ? ` tools=[${toolCalls.map(t => `${t.name}(${JSON.stringify(t.args).slice(0, 120)})`).join(' | ')}]`
+    : ''
+  const textPart = trimmed.length > 0 ? trimmed.slice(0, 200).replace(/\s+/g, ' ') : ''
+  return (textPart + toolPart).trim() || '(no action)'
 }
