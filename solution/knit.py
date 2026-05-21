@@ -87,8 +87,8 @@ def main():
                 if stitch_type == "k2tog":
                     # k2tog decreases stitch count by 1 for each occurrence
                     current_stitches -= count
-                elif stitch_type == "yo":
-                    # yo increases stitch count by 1 for each occurrence
+                elif stitch_type in ["yo", "inc"]:
+                    # yo and inc increase stitch count by 1 for each occurrence
                     current_stitches += count
                 # Other stitch types like "k" or "p" don't change stitch count
             
