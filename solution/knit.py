@@ -73,19 +73,29 @@ def main():
         pattern_name, cast_on, bind_off, rows = parse_knit_file(input_file)
         
         # Process the rows to get final stitch count
-        # For now, we'll just use the cast_on value as the final stitch count
-        final_stitch_count = cast_on
-        
-        # Create expanded_rows list
+        current_stitches = cast_on
         expanded_rows = []
         expanded_row_index = 1
+        
         for row_num, instruction in rows:
-            # For now, assume start_stitches equals cast_on and no stitch changes
-            start_stitches = cast_on
-            end_stitches = cast_on  # This will need to be calculated based on instructions
+            start_stitches = current_stitches
             
             # Parse the instruction string into a list of stitch operations
             parsed_instructions = parse_instructions(instruction)
+            
+            # Calculate stitch count changes based on instructions
+            for op in parsed_instructions:
+                stitch_type = op["stitch"]
+                count = op["count"]
+                if stitch_type == "k2tog":
+                    # k2tog decreases stitch count by 1 for each occurrence
+                    current_stitches -= count
+                elif stitch_type == "yo":
+                    # yo increases stitch count by 1 for each occurrence
+                    current_stitches += count
+                # Other stitch types like "k" or "p" don't change stitch count
+            
+            end_stitches = current_stitches
             
             expanded_rows.append({
                 "source_row": row_num,
@@ -95,6 +105,8 @@ def main():
                 "instructions": parsed_instructions
             })
             expanded_row_index += 1
+        
+        final_stitch_count = current_stitches
         
         result = {
             "pattern_name": pattern_name,
