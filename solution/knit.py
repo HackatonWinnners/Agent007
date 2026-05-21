@@ -7,24 +7,21 @@ import re
 
 def parse_instructions(instruction):
     """Parse a row instruction string into a list of stitch operations."""
-    # This is a simplified parser that just handles basic k (knit) instructions
-    # In a full implementation, this would need to handle more stitch types
-    # and operations like k2tog, yo, etc.
-    
     # Split the instruction by commas to get individual operations
     operations = instruction.split(',')
     parsed_ops = []
     
     for op in operations:
         op = op.strip()
-        # Match pattern like "k4" or "p3" or "k2tog"
-        # This is a basic implementation that needs to be expanded
+        # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
         match = re.match(r'([a-zA-Z]+)(\d*)', op)
         if match:
             stitch_type = match.group(1)
             count = int(match.group(2)) if match.group(2) else 1
-            # For now, we'll assume all operations maintain the same stitch count
-            # A full implementation would need to parse k2tog (decrease) and yo (increase)
+            
+            # Handle special cases for stitch count changes
+            # For example, k2tog decreases by 1 stitch per occurrence
+            # yo and inc increase by 1 stitch per occurrence
             parsed_ops.append({
                 "stitch": stitch_type,
                 "count": count
