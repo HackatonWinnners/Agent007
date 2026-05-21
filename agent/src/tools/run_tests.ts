@@ -10,9 +10,13 @@ type Output = {
   stdoutTail: string
 }
 
+// Default invocation matches the Knitting Compiler public test runner shape.
+// The runner takes --compiler and the compiler invocation, runs the public
+// suite, and prints a scoreboard. From workingRoot (the team-repo root),
+// secret_spec and solution are sibling directories.
 const DEFAULT_PUBLIC =
-  'python3 ../secret_spec/test_runner/run_tests.py --program "python3 ../solution/main.py" --suite public'
-const DEFAULT_SELF = 'pytest -q ../solution/self_tests'
+  'python3 secret_spec/test_runner/run_tests.py --compiler "python3 solution/knit.py" --failures 10'
+const DEFAULT_SELF = 'pytest -q solution/self_tests'
 
 export const runTestsTool: Tool<Input, Output> = {
   name: 'run_tests',
@@ -45,8 +49,11 @@ export const runTestsTool: Tool<Input, Output> = {
       child.on('close', code => {
         const exitCode = code ?? -1
         const combined = `${stdout}\n${stderr}`
-        const scoreMatch = combined.match(/(\d+)\s*\/\s*(\d+)/)
-        const score = scoreMatch ? `${scoreMatch[1]}/${scoreMatch[2]}` : null
+        // Prefer the explicit "Overall ... N/M passed" line; fall back to first N/M.
+        const overall = combined.match(/Overall[^0-9]*(\d+)\s*\/\s*(\d+)\s*passed/i)
+        const anyScore = combined.match(/(\d+)\s*\/\s*(\d+)/)
+        const m = overall ?? anyScore
+        const score = m ? `${m[1]}/${m[2]}` : null
         const failingCategories = parseFailingCategories(combined)
         ctx.logger.testRun({ score: score ?? 'unknown', failingCategories })
         ctx.logger.command({ cmd, exitCode, durationMs: Date.now() - start, stdoutTail: combined })
@@ -68,13 +75,24 @@ export const runTestsTool: Tool<Input, Output> = {
 }
 
 function parseFailingCategories(text: string): string[] {
-  // Generic best-effort parser. The actual public runner format is unknown until
-  // reveal; tweak this once the real output is visible.
-  const lines = text.split('\n')
+  // The Knitting Compiler runner prints per-level lines like:
+  //   level_03_brackets                    [..................]   0/25
+  // We surface levels with at least one failure.
   const out = new Set<string>()
-  for (const l of lines) {
-    const m = l.match(/(?:FAIL|FAILED|category|group)[^a-zA-Z]+([a-zA-Z0-9_\-]+)/)
-    if (m && m[1]) out.add(m[1].toLowerCase())
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*(level_\d{2}_[a-z_]+)\s*\[[.\-#]+\]\s*(\d+)\/(\d+)/)
+    if (m && m[1] && m[2] && m[3]) {
+      const passed = Number(m[2])
+      const total = Number(m[3])
+      if (passed < total) out.add(m[1])
+    }
+  }
+  // Fallback: also catch FAIL/FAILED lines if format changes.
+  if (out.size === 0) {
+    for (const l of text.split('\n')) {
+      const m = l.match(/(?:FAIL|FAILED|category|group)[^a-zA-Z]+([a-zA-Z0-9_\-]+)/)
+      if (m && m[1]) out.add(m[1].toLowerCase())
+    }
   }
   return [...out]
 }

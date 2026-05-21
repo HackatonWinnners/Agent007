@@ -74,13 +74,16 @@ const router = createRouter({
     }),
 })
 
-// Minimal root toolset: empirically DeepSeek-V3.2 emits empty tool-call args
-// when given 10+ tools alongside a long system prompt. Cutting to the essential
-// 4 tools fixes that. Add more back via the model's WORKFLOW skills if needed.
+// Root toolset for the real hackathon task. We re-enable run_tests, edit,
+// glob, grep, load_skill — DeepSeek-V3.2's empty-args glitch doesn't affect
+// Qwen3-Coder which is our actual primary on NVIDIA. Subagents stay off to
+// keep the loop linear and easier to debug overnight.
 const rootTools = createRegistry([
-  readTool, writeTool, editTool, bashTool, submitDoneTool,
+  readTool, writeTool, editTool, bashTool,
+  globTool, grepTool, runTestsTool, loadSkillTool,
+  submitDoneTool,
 ])
-void globTool; void grepTool; void runTestsTool; void loadSkillTool; void spawnSubagentTool
+void spawnSubagentTool
 
 const SUBAGENT_TOOLS = {
   planner: createRegistry([readTool, loadSkillTool]),
