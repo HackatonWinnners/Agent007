@@ -2,3 +2,4 @@
 [2026-05-21 18:21:38] DECISION {"iteration":1,"agentId":"root","summary":"tools=[load_skill({\"name\":\"spec-parsing\"})]"}
 [2026-05-21 18:21:42] DECISION {"iteration":2,"agentId":"root","summary":"tools=[load_skill({\"name\":\"incremental-fix-discipline\"})]"}
 [2026-05-21 18:21:47] DECISION {"iteration":3,"agentId":"root","summary":"tools=[load_skill({\"name\":\"python-cli-discipline\"})]"}
+[2026-05-21 18:21:55] DECISION {"iteration":4,"agentId":"root","summary":"tools=[spawn_subagent({})]"}
