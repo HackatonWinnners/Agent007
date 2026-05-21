@@ -51,11 +51,23 @@ def main():
         
         # Create expanded_rows list
         expanded_rows = []
+        expanded_row_index = 1
         for row_num, instruction in rows:
+            # For now, assume start_stitches equals cast_on and no stitch changes
+            start_stitches = cast_on
+            end_stitches = cast_on  # This will need to be calculated based on instructions
+            
+            # Parse the instruction string into a list of stitch operations
+            parsed_instructions = parse_instructions(instruction)
+            
             expanded_rows.append({
                 "source_row": row_num,
-                "instructions": instruction
+                "expanded_row_index": expanded_row_index,
+                "start_stitches": start_stitches,
+                "end_stitches": end_stitches,
+                "instructions": parsed_instructions
             })
+            expanded_row_index += 1
         
         result = {
             "pattern_name": pattern_name,
