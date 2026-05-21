@@ -3,3 +3,4 @@
 [2026-05-22 00:24:31] ERROR {"where":"router.complete","message":"Unable to connect. Is the computer able to access the url?"}
 [2026-05-22 00:32:37] ERROR {"where":"router.complete","message":"Unable to connect. Is the computer able to access the url?"}
 [2026-05-22 00:44:28] ERROR {"where":"router.complete","message":"Cerebras 429: {\"message\":\"We're experiencing high traffic right now! Please try again soon.\",\"type\":\"too_many_requests_error\",\"param\":\"queue\",\"code\":\"queue_exceeded\"}"}
+[2026-05-22 01:03:14] ERROR {"where":"router.complete","message":"Cerebras 429: {\"message\":\"Tokens per minute limit exceeded - too many tokens processed.\",\"type\":\"too_many_tokens_error\",\"param\":\"quota\",\"code\":\"token_quota_exceeded\"}"}

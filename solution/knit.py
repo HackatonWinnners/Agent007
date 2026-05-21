@@ -7,23 +7,34 @@ import re
 
 def parse_instructions(instruction):
     """Parse a row instruction string into a list of stitch operations."""
-    # Handle bracket notation
-    # First, find all bracketed sections and their repeat counts
-    bracket_pattern = r'\[([^\]]+)\]\s*x(\d+)'
-    matches = re.findall(bracket_pattern, instruction)
-    
-    # Expand bracketed sections
-    expanded_instruction = instruction
-    for match in matches:
-        section = match[0]
-        count = int(match[1])
-        expanded_section = (section + ', ') * count
-        # Remove trailing comma and space
-        expanded_section = expanded_section.rstrip(', ')
-        expanded_instruction = expanded_instruction.replace(f'[{section}] x{count}', expanded_section, 1)
+    # Handle bracket notation with nested brackets
+    # Keep expanding until no more brackets are found
+    while '[' in instruction and ']' in instruction:
+        # Find the innermost bracketed sections and their repeat counts
+        bracket_pattern = r'\[([^\[\]]+)\]\s*x(\d+)'
+        match = re.search(bracket_pattern, instruction)
+        if not match:
+            break
+        
+        # Get the full match and groups
+        full_match = match.group(0)
+        section = match.group(1)
+        count_str = match.group(2)
+        
+        try:
+            count = int(count_str)
+            # Expand the section
+            expanded_section = (section + ', ') * count
+            # Remove trailing comma and space
+            expanded_section = expanded_section.rstrip(', ')
+            # Replace the bracketed section
+            instruction = instruction.replace(full_match, expanded_section, 1)
+        except ValueError:
+            # If count is not a valid integer, return malformed row error
+            raise ValueError("Malformed row: invalid repeat count")
     
     # Split the instruction by commas to get individual operations
-    operations = expanded_instruction.split(',')
+    operations = instruction.split(',')
     parsed_ops = []
     
     for op in operations:
