@@ -28,7 +28,15 @@ export const readTool: Tool<Input, { content: string }> = {
   },
   async call(input, ctx) {
     if (!existsSync(input.file_path)) return { ok: false, error: `File not found: ${input.file_path}` }
-    const raw = readFileSync(input.file_path, 'utf8')
+    let raw: string
+    try {
+      raw = readFileSync(input.file_path, 'utf8')
+    } catch (e) {
+      const msg = (e as Error & { code?: string }).code === 'EISDIR'
+        ? `Path is a directory, not a file: ${input.file_path}. Use the glob tool to list contents.`
+        : `Could not read file ${input.file_path}: ${(e as Error).message}`
+      return { ok: false, error: msg }
+    }
     const rawLines = raw.split('\n')
     // Drop the trailing empty element produced by files that end with a newline,
     // so "hello\nworld\n" gives 2 numbered lines, not 3.

@@ -34,10 +34,13 @@ export const spawnSubagentTool: Tool<Input, { summary: string; iterations: numbe
   concurrencySafe: false,
   parse(args) {
     const role = args.role
+    const allowed = ['planner', 'implementer', 'tester', 'failure_analyst', 'self_test_writer']
     if (role !== 'planner' && role !== 'implementer' && role !== 'tester' && role !== 'failure_analyst' && role !== 'self_test_writer') {
-      return { __error: 'invalid role' }
+      return { __error: `role is required and must be one of: ${allowed.join(', ')}. Example: spawn_subagent(role='planner', task='produce a plan to ...')` }
     }
-    if (typeof args.task !== 'string') return { __error: 'task required' }
+    if (typeof args.task !== 'string' || args.task.length === 0) {
+      return { __error: `task is required (a non-empty string describing what the subagent should do). Example: spawn_subagent(role='${role}', task='...')` }
+    }
     const mi = typeof args.max_iterations === 'number' ? args.max_iterations : 40
     return { role, task: args.task, max_iterations: mi }
   },
