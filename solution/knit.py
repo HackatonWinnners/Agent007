@@ -12,9 +12,11 @@ def parse_instructions(instruction):
     parsed_ops = []
     
     for op in operations:
-        op = op.strip()
-        # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
-        match = re.match(r'([a-zA-Z]+)(\d*)', op)
+        for op in operations:
+        # Handle special cases for stitch count changes
+        # For example, k2tog decreases by 1 stitch per occurrence
+        # yo and inc increase by 1 stitch per occurrence
+        parsed_ops.append({
         if match:
             stitch_type = match.group(1)
             count = int(match.group(2)) if match.group(2) else 1
