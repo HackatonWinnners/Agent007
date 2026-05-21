@@ -2,7 +2,8 @@
 // Suppressed when AGENT_QUIET=1 or stdout is not a TTY.
 
 const isTty = process.stdout.isTTY === true
-const quiet = process.env.AGENT_QUIET === '1' || !isTty
+const forced = process.env.AGENT_FORCE_UI === '1'
+const quiet = process.env.AGENT_QUIET === '1' || (!isTty && !forced)
 
 const c = {
   reset: '\x1b[0m',
