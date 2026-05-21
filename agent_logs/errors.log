@@ -1,1 +1,3 @@
 [2026-05-21 22:01:26] ERROR {"where":"router.complete","message":"Cerebras 429: {\"message\":\"Tokens per minute limit exceeded - too many tokens processed.\",\"type\":\"too_many_tokens_error\",\"param\":\"quota\",\"code\":\"token_quota_exceeded\"}"}
+[2026-05-21 22:04:29] ERROR {"where":"router.complete","message":"Cerebras 429: {\"message\":\"Tokens per minute limit exceeded - too many tokens processed.\",\"type\":\"too_many_tokens_error\",\"param\":\"quota\",\"code\":\"token_quota_exceeded\"}"}
+[2026-05-21 22:12:01] ERROR {"where":"router.complete","message":"Cerebras 429: {\"message\":\"Tokens per minute limit exceeded - too many tokens processed.\",\"type\":\"too_many_tokens_error\",\"param\":\"quota\",\"code\":\"token_quota_exceeded\"}"}

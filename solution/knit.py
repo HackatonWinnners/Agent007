@@ -88,14 +88,40 @@ def main():
         sys.exit(2)
     
     try:
-        pattern_name, cast_on, bind_off, rows = parse_knit_file(input_file)
+        pattern_name, cast_on, bind_off, rows, repeats = parse_knit_file(input_file)
         
         # Process the rows to get final stitch count
         current_stitches = cast_on
         expanded_rows = []
+        expanded_instructions = []
         expanded_row_index = 1
         
+        # First, expand the rows with repeats
+        expanded_rows_list = []
+        
+        # Add the original rows first
         for row_num, instruction in rows:
+            expanded_rows_list.append((row_num, instruction))
+        
+        # Then handle repeats
+        for repeat in repeats:
+            start_row = repeat["start_row"]
+            end_row = repeat["end_row"]
+            count = repeat["count"]
+            
+            # Find the rows to repeat
+            rows_to_repeat = []
+            for row_num, instruction in rows:
+                if start_row <= row_num <= end_row:
+                    rows_to_repeat.append((row_num, instruction))
+            
+            # Add repeated rows
+            for _ in range(count):
+                for row_num, instruction in rows_to_repeat:
+                    expanded_rows_list.append((row_num, instruction))
+        
+        # Process the expanded rows
+        for row_num, instruction in expanded_rows_list:
             start_stitches = current_stitches
             
             # Parse the instruction string into a list of stitch operations
@@ -115,7 +141,7 @@ def main():
             
             end_stitches = current_stitches
             
-            expanded_rows.append({
+            expanded_instructions.append({
                 "source_row": row_num,
                 "expanded_row_index": expanded_row_index,
                 "start_stitches": start_stitches,
@@ -131,7 +157,7 @@ def main():
             "cast_on": cast_on,
             "valid": True,
             "errors": [],
-            "expanded_rows": expanded_rows,
+            "expanded_rows": expanded_instructions,
             "final_stitch_count": final_stitch_count,
             "bind_off": bind_off
         }
