@@ -7,19 +7,35 @@ import re
 
 def parse_instructions(instruction):
     """Parse a row instruction string into a list of stitch operations."""
+    # Handle bracket notation
+    # First, find all bracketed sections and their repeat counts
+    bracket_pattern = r'\[([^\]]+)\]\s*x(\d+)'
+    matches = re.findall(bracket_pattern, instruction)
+    
+    # Expand bracketed sections
+    expanded_instruction = instruction
+    for match in matches:
+        section = match[0]
+        count = int(match[1])
+        expanded_section = (section + ', ') * count
+        # Remove trailing comma and space
+        expanded_section = expanded_section.rstrip(', ')
+        expanded_instruction = expanded_instruction.replace(f'[{section}] x{count}', expanded_section, 1)
+    
     # Split the instruction by commas to get individual operations
-    operations = instruction.split(',')
+    operations = expanded_instruction.split(',')
     parsed_ops = []
     
     for op in operations:
-        for op in operations:
-        # Handle special cases for stitch count changes
-        # For example, k2tog decreases by 1 stitch per occurrence
-        # yo and inc increase by 1 stitch per occurrence
-        parsed_ops.append({
+        op = op.strip()
+        if not op:
+            continue
+        # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
+        match = re.match(r'([a-zA-Z]+)(\d*)', op)
         if match:
             stitch_type = match.group(1)
-            count = int(match.group(2)) if match.group(2) else 1
+            count_str = match.group(2)
+            count = int(count_str) if count_str else 1
             
             # Handle special cases for stitch count changes
             # For example, k2tog decreases by 1 stitch per occurrence
