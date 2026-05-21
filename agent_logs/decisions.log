@@ -1,1 +1,1 @@
-[2026-05-21 20:03:06] DECISION {"iteration":0,"agentId":"root","summary":"<function=read> <parameter=file_path>/Users/madvil2/Projects/needle-agent/demo/toy_spec.md</parameter> </function> </tool_call>"}
+[2026-05-21 20:06:19] DECISION {"iteration":0,"agentId":"root","summary":"tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/demo/toy_spec.md\"})]"}

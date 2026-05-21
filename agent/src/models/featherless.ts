@@ -78,7 +78,7 @@ export function createFeatherlessClient(opts: { apiKey: string; baseUrl: string 
       // Some Featherless backends (notably models without proper tool-calling support)
       // return null/missing id and name. Synthesize sane defaults so we can echo
       // a valid assistant message back on the next turn.
-      const toolCalls: ToolCall[] = (msg?.tool_calls ?? [])
+      const nativeToolCalls: ToolCall[] = (msg?.tool_calls ?? [])
         .filter(tc => tc && tc.function && typeof tc.function.name === 'string' && tc.function.name.length > 0)
         .map((tc, i) => ({
           id: typeof tc.id === 'string' && tc.id.length > 0 ? tc.id : `tc-${Date.now()}-${i}`,
@@ -86,8 +86,25 @@ export function createFeatherlessClient(opts: { apiKey: string; baseUrl: string 
           args: safeJson(tc.function.arguments),
         }))
 
+      let content = msg?.content ?? null
+      let toolCalls = nativeToolCalls
+
+      // Fallback: Qwen3-Coder sometimes emits <function=NAME><parameter=K>V</parameter>...</function>
+      // directly inside content instead of using the OpenAI-style tool_calls field.
+      // Parse it and remove from content so the model doesn't see its own XML next turn.
+      if (toolCalls.length === 0 && typeof content === 'string' && content.includes('<function=')) {
+        const { calls, stripped } = parseXmlToolCalls(content)
+        if (calls.length > 0) {
+          toolCalls = calls
+          content = stripped.trim() || null
+          if (process.env.AGENT_DEBUG === '1') {
+            console.error(`[DEBUG] parsed ${calls.length} XML tool_calls from content`)
+          }
+        }
+      }
+
       return {
-        content: msg?.content ?? null,
+        content,
         toolCalls,
         usage: data.usage
           ? { promptTokens: data.usage.prompt_tokens, completionTokens: data.usage.completion_tokens }
@@ -104,4 +121,45 @@ function safeJson(s: string): Record<string, unknown> {
   } catch {
     return {}
   }
+}
+
+// Qwen3-Coder native tool-call format:
+//   <function=NAME>
+//   <parameter=KEY>VALUE</parameter>
+//   ...
+//   </function>
+// Featherless sometimes wraps these in <tool_call>...</tool_call> too; we
+// ignore the outer wrappers.
+function parseXmlToolCalls(content: string): { calls: ToolCall[]; stripped: string } {
+  const calls: ToolCall[] = []
+  const fnRe = /<function=([a-zA-Z_][a-zA-Z0-9_]*)>([\s\S]*?)<\/function>/g
+  const paramRe = /<parameter=([a-zA-Z_][a-zA-Z0-9_]*)>([\s\S]*?)<\/parameter>/g
+  for (const m of content.matchAll(fnRe)) {
+    const name = m[1]
+    const body = m[2] ?? ''
+    if (!name) continue
+    const args: Record<string, unknown> = {}
+    for (const pm of body.matchAll(paramRe)) {
+      const k = pm[1]
+      const v = pm[2] ?? ''
+      if (!k) continue
+      const vTrim = v.replace(/^\n+|\n+$/g, '')
+      try { args[k] = JSON.parse(vTrim) } catch { args[k] = vTrim }
+    }
+    // If no <parameter=...> tags, try parsing the function body as JSON.
+    if (Object.keys(args).length === 0) {
+      const bodyTrim = body.trim()
+      if (bodyTrim.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(bodyTrim)
+          if (typeof parsed === 'object' && parsed !== null) {
+            Object.assign(args, parsed as Record<string, unknown>)
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    calls.push({ id: `xml-${Date.now()}-${calls.length}`, name, args })
+  }
+  const stripped = content.replace(fnRe, '').replace(/<\/?tool_call>/g, '').trim()
+  return { calls, stripped }
 }
