@@ -47,11 +47,11 @@ void ollama
 // without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
 // for everything. Fallback also on Featherless so we don't need Ollama running.
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'deepseek-ai/DeepSeek-V3.2',
-  planner: 'deepseek-ai/DeepSeek-V3.2',
-  tester: 'deepseek-ai/DeepSeek-V3.2',
-  failure_analyst: 'deepseek-ai/DeepSeek-V3.2',
-  self_test_writer: 'deepseek-ai/DeepSeek-V3.2',
+  primary_coder: 'deepseek-ai/DeepSeek-V3-0324',
+  planner: 'deepseek-ai/DeepSeek-V3-0324',
+  tester: 'deepseek-ai/DeepSeek-V3-0324',
+  failure_analyst: 'deepseek-ai/DeepSeek-V3-0324',
+  self_test_writer: 'deepseek-ai/DeepSeek-V3-0324',
   fallback: 'deepseek-ai/DeepSeek-V3-0324',
 }
 
