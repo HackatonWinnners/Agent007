@@ -1,1 +1,0 @@
-[2026-05-21 20:17:47] INTERVENTION {"type":"auto-fallback","what":"switched primary_coder to fallback model Qwen/Qwen3-Coder-480B-A35B-Instruct","why":"primary exceeded 60000ms timeout","filesAffected":[],"touchedFinalCode":false}
