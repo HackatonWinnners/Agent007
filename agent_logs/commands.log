@@ -1,3 +1,4 @@
 [2026-05-21 18:40:46] COMMAND {"cmd":"echo hello | python3 /Users/madvil2/Projects/needle-agent/solution/main.py uppercase","exitCode":0,"durationMs":55,"stdoutTail":"HELLO\n"}
 [2026-05-21 18:40:50] COMMAND {"cmd":"echo hello | python3 /Users/madvil2/Projects/needle-agent/solution/main.py reverse","exitCode":0,"durationMs":50,"stdoutTail":"\nolleh"}
 [2026-05-21 18:40:56] COMMAND {"cmd":"echo hello | python3 /Users/madvil2/Projects/needle-agent/solution/main.py invalid","exitCode":2,"durationMs":51,"stdoutTail":""}
+[2026-05-21 18:41:00] COMMAND {"cmd":"python3 /Users/madvil2/Projects/needle-agent/solution/main.py uppercase < /dev/null","exitCode":0,"durationMs":49,"stdoutTail":""}
