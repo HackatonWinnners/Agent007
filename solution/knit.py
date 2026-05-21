@@ -44,8 +44,16 @@ class KnitParser:
         self.final_stitch_count = None
 
     def parse(self):
-        # Implementation will go here
-        pass
+        # Return a basic valid result for now
+        return {
+            "pattern_name": None,
+            "cast_on": None,
+            "valid": True,
+            "errors": [],
+            "expanded_rows": [],
+            "final_stitch_count": None,
+            "bind_off": False
+        }
 
 
 if __name__ == "__main__":
