@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { config } from './config'
 import { createLogger } from './logger'
 import { createReadFileCache } from './state/readFileCache'
+import { createCerebrasClient } from './models/cerebras'
 import { createNvidiaClient } from './models/nvidia'
 import { createFeatherlessClient } from './models/featherless'
 import { createOllamaClient } from './models/ollama'
@@ -36,26 +37,28 @@ const workingRoot = resolve(args.repoRoot ?? '..')
 const logger = createLogger(config.logDir)
 const readFileCache = createReadFileCache()
 
+const cerebras = createCerebrasClient({ apiKey: config.cerebrasKey, baseUrl: config.cerebrasBaseUrl })
 const nvidia = createNvidiaClient({ apiKey: config.nvidiaKey, baseUrl: config.nvidiaBaseUrl })
 const featherless = createFeatherlessClient({ apiKey: config.featherlessKey, baseUrl: config.featherlessBaseUrl })
 const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
-// NVIDIA NIM was hanging on the real spec (likely cold-start or queue depth on
-// the free tier), so we swapped to Featherless as primary. NVIDIA stays wired
-// as the fallback in case Featherless rate-limits us.
-const primaryClient = featherless
+// Cerebras gives 1500-2500 tok/s on Qwen3-235B-A22B (same model family as our
+// previous attempts but vastly faster). NVIDIA NIM and Featherless were both
+// hanging at 120s+ per call on the large spec. Cerebras is primary; NVIDIA
+// stays wired as fallback in case Cerebras rate-limits the free tier.
+const primaryClient = cerebras
 const fallbackClient = nvidia
-void ollama
+void featherless; void ollama
 
 // DeepSeek-V4-Pro is tools=False on Featherless — our entire agent depends on
 // tool calls (every role's runLoop sends tools), so V4-Pro is unusable here
 // without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
 // for everything. Fallback also on Featherless so we don't need Ollama running.
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  planner: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  tester: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  failure_analyst: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  self_test_writer: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  primary_coder: 'qwen-3-235b-a22b-instruct-2507',
+  planner: 'qwen-3-235b-a22b-instruct-2507',
+  tester: 'qwen-3-235b-a22b-instruct-2507',
+  failure_analyst: 'qwen-3-235b-a22b-instruct-2507',
+  self_test_writer: 'qwen-3-235b-a22b-instruct-2507',
   // Fallback hits NVIDIA NIM with the lowercase namespaced id.
   fallback: 'qwen/qwen3-coder-480b-a35b-instruct',
 }

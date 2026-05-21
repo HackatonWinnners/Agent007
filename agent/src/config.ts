@@ -3,6 +3,8 @@ import { resolve } from 'path'
 const cwd = process.cwd()
 
 export const config = {
+  cerebrasKey: process.env.CEREBRAS_API_KEY ?? '',
+  cerebrasBaseUrl: process.env.CEREBRAS_BASE_URL ?? 'https://api.cerebras.ai/v1',
   nvidiaKey: process.env.NVIDIA_API_KEY ?? '',
   nvidiaBaseUrl: process.env.NVIDIA_BASE_URL ?? 'https://integrate.api.nvidia.com/v1',
   featherlessKey: process.env.FEATHERLESS_API_KEY ?? '',
