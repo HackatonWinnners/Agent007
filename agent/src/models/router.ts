@@ -21,11 +21,16 @@ export type RouterOptions = {
   primaryTimeoutMs?: number
 }
 
-const RETRYABLE = new Set([408, 429, 500, 502, 503, 504])
+const RETRYABLE = new Set([408, 500, 502, 503, 504])
+// 429 is special: it means we hit a rate limit, retrying immediately won't help.
+// Instead we cool the primary for a minute and route via fallback during that window.
+const RATE_LIMIT_STATUS = 429
+const PRIMARY_COOLDOWN_MS = 60_000
 
 export function createRouter(opts: RouterOptions) {
   const delays = opts.retryDelaysMs ?? [1000, 4000, 12000]
   const timeoutMs = opts.primaryTimeoutMs ?? 60_000
+  let primaryColdUntil = 0  // epoch ms; while now < this, skip primary entirely
 
   async function tryPrimary(fullRequest: Parameters<ModelClient['complete']>[0]): Promise<ChatResponse> {
     let lastErr: unknown
@@ -35,6 +40,11 @@ export function createRouter(opts: RouterOptions) {
       } catch (e) {
         lastErr = e
         const status = (e as { status?: number }).status
+        if (status === RATE_LIMIT_STATUS) {
+          // Mark primary as cold and stop trying — caller will use fallback.
+          primaryColdUntil = Date.now() + PRIMARY_COOLDOWN_MS
+          break
+        }
         if (status && !RETRYABLE.has(status)) break
         await new Promise(r => setTimeout(r, delays[attempt] ?? 1000))
       }
@@ -51,6 +61,16 @@ export function createRouter(opts: RouterOptions) {
         tools: req.tools,
         temperature: req.temperature,
         maxTokens: req.maxTokens,
+      }
+      // If primary is in cooldown (recent 429), bypass it entirely.
+      if (Date.now() < primaryColdUntil) {
+        const msLeft = primaryColdUntil - Date.now()
+        opts.onIntervention({
+          type: 'primary-cooldown',
+          what: `primary in cooldown, routing ${req.role} via fallback`,
+          why: `~${Math.ceil(msLeft / 1000)}s left after recent 429`,
+        })
+        return opts.fallback.complete({ ...fullRequest, model: opts.models.fallback })
       }
       // Race primary attempt sequence against a hard timeout. Whichever resolves
       // first wins; on timeout we fall back to the secondary provider.
