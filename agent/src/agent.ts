@@ -68,14 +68,13 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
       break
     }
 
-    // cycle detection
+    // cycle detection: any sig appearing 3+ times in a 5-window is a loop
     const sig = response.toolCalls.map(tc => `${tc.name}:${JSON.stringify(tc.args).slice(0, 200)}`).join('|')
     lastToolCallHashes.push(sig)
-    if (lastToolCallHashes.length > 3) lastToolCallHashes.shift()
-    const stuck =
-      lastToolCallHashes.length === 3 &&
-      lastToolCallHashes[0] === lastToolCallHashes[1] &&
-      lastToolCallHashes[1] === lastToolCallHashes[2]
+    if (lastToolCallHashes.length > 5) lastToolCallHashes.shift()
+    const counts = new Map<string, number>()
+    for (const s of lastToolCallHashes) counts.set(s, (counts.get(s) ?? 0) + 1)
+    const stuck = [...counts.values()].some(n => n >= 3)
 
     if (stuck) {
       inp.logger.intervention({

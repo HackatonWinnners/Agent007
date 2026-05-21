@@ -18,8 +18,12 @@ export const writeTool: Tool<Input, { bytes: number; created: boolean }> = {
   },
   concurrencySafe: false,
   parse(args) {
-    if (typeof args.file_path !== 'string') return { __error: 'file_path required' }
-    if (typeof args.content !== 'string') return { __error: 'content required' }
+    if (typeof args.file_path !== 'string' || args.file_path.length === 0) {
+      return { __error: 'file_path is required (absolute path string). Example: write(file_path="/abs/path/solution/main.py", content="...")' }
+    }
+    if (typeof args.content !== 'string') {
+      return { __error: 'content is required (the file body as a string). Example: write(file_path="...", content="import sys\\n...")' }
+    }
     return { file_path: args.file_path, content: args.content, overwrite: args.overwrite === true }
   },
   async call(input, ctx) {

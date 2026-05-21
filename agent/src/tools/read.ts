@@ -19,7 +19,9 @@ export const readTool: Tool<Input, { content: string }> = {
   concurrencySafe: true,
   parse(args) {
     const fp = args.file_path
-    if (typeof fp !== 'string' || fp.length === 0) return { __error: 'file_path required' }
+    if (typeof fp !== 'string' || fp.length === 0) {
+      return { __error: 'file_path is required (absolute path string). Example: read(file_path="/abs/path/file.txt")' }
+    }
     return {
       file_path: fp,
       offset: typeof args.offset === 'number' ? args.offset : undefined,

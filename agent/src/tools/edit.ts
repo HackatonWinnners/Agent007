@@ -19,9 +19,11 @@ export const editTool: Tool<Input, { matches: number; replaceAll: boolean }> = {
   },
   concurrencySafe: false,
   parse(args) {
-    if (typeof args.file_path !== 'string') return { __error: 'file_path required' }
-    if (typeof args.old_string !== 'string') return { __error: 'old_string required' }
-    if (typeof args.new_string !== 'string') return { __error: 'new_string required' }
+    if (typeof args.file_path !== 'string' || args.file_path.length === 0) {
+      return { __error: 'file_path is required (absolute path string). Example: edit(file_path="...", old_string="...", new_string="...")' }
+    }
+    if (typeof args.old_string !== 'string') return { __error: 'old_string is required (substring to replace)' }
+    if (typeof args.new_string !== 'string') return { __error: 'new_string is required (replacement string; may be empty for deletion)' }
     return {
       file_path: args.file_path,
       old_string: args.old_string,
