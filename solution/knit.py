@@ -146,16 +146,20 @@ def main():
             parsed_instructions = parse_instructions(instruction)
             
             # Calculate stitch count changes based on instructions
+            stitch_count = start_stitches
             for op in parsed_instructions:
                 stitch_type = op["stitch"]
                 count = op["count"]
                 if stitch_type == "k2tog":
                     # k2tog decreases stitch count by 1 for each occurrence
-                    current_stitches -= count
+                    stitch_count -= count
                 elif stitch_type in ["yo", "inc"]:
                     # yo and inc increase stitch count by 1 for each occurrence
-                    current_stitches += count
+                    stitch_count += count
                 # Other stitch types like "k" or "p" don't change stitch count
+            
+            # Update current stitches for next row
+            current_stitches = stitch_count
             
             end_stitches = current_stitches
             
