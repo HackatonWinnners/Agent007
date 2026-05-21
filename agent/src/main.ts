@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { config } from './config'
 import { createLogger } from './logger'
 import { createReadFileCache } from './state/readFileCache'
+import { createNvidiaClient } from './models/nvidia'
 import { createFeatherlessClient } from './models/featherless'
 import { createOllamaClient } from './models/ollama'
 import { createRouter, type Role as RouterRole } from './models/router'
@@ -35,11 +36,12 @@ const workingRoot = resolve(args.repoRoot ?? '..')
 const logger = createLogger(config.logDir)
 const readFileCache = createReadFileCache()
 
+const nvidia = createNvidiaClient({ apiKey: config.nvidiaKey, baseUrl: config.nvidiaBaseUrl })
 const featherless = createFeatherlessClient({ apiKey: config.featherlessKey, baseUrl: config.featherlessBaseUrl })
 const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
-// Keep ollama instantiated for the fallback path when the user actually has it,
-// but for this run point fallback at another Featherless model so we don't
-// require a local Ollama daemon.
+// Primary: NVIDIA NIM (fast, OpenAI-compat). Fallback: Featherless (kicks in if
+// NVIDIA exceeds AGENT_PRIMARY_TIMEOUT_MS or returns a hard error).
+const primaryClient = nvidia
 const fallbackClient = featherless
 void ollama
 
@@ -48,18 +50,20 @@ void ollama
 // without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
 // for everything. Fallback also on Featherless so we don't need Ollama running.
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  planner: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  tester: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  failure_analyst: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
-  self_test_writer: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  primary_coder: 'qwen/qwen3-coder-480b-a35b-instruct',
+  planner: 'qwen/qwen3-coder-480b-a35b-instruct',
+  tester: 'qwen/qwen3-coder-480b-a35b-instruct',
+  failure_analyst: 'qwen/qwen3-coder-480b-a35b-instruct',
+  self_test_writer: 'qwen/qwen3-coder-480b-a35b-instruct',
+  // Fallback hits Featherless, where the same model uses the capital-cased HF id.
   fallback: 'Qwen/Qwen3-Coder-480B-A35B-Instruct',
 }
 
 const router = createRouter({
-  primary: featherless,
+  primary: primaryClient,
   fallback: fallbackClient,
   models: MODELS,
+  primaryTimeoutMs: config.primaryTimeoutMs,
   onIntervention: info =>
     logger.intervention({
       type: info.type,

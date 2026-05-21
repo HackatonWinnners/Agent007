@@ -16,12 +16,31 @@ export type RouterOptions = {
   models: Record<Role | 'fallback', string>
   onIntervention(info: { type: string; what: string; why: string }): void
   retryDelaysMs?: number[]
+  // Hard timeout on the WHOLE primary attempt sequence (including retries).
+  // If exceeded, router triggers fallback. Default 60s.
+  primaryTimeoutMs?: number
 }
 
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504])
 
 export function createRouter(opts: RouterOptions) {
   const delays = opts.retryDelaysMs ?? [1000, 4000, 12000]
+  const timeoutMs = opts.primaryTimeoutMs ?? 60_000
+
+  async function tryPrimary(fullRequest: Parameters<ModelClient['complete']>[0]): Promise<ChatResponse> {
+    let lastErr: unknown
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+      try {
+        return await opts.primary.complete(fullRequest)
+      } catch (e) {
+        lastErr = e
+        const status = (e as { status?: number }).status
+        if (status && !RETRYABLE.has(status)) break
+        await new Promise(r => setTimeout(r, delays[attempt] ?? 1000))
+      }
+    }
+    throw lastErr ?? new Error('primary failed')
+  }
 
   return {
     async complete(req: RouterRequest): Promise<ChatResponse> {
@@ -33,21 +52,28 @@ export function createRouter(opts: RouterOptions) {
         temperature: req.temperature,
         maxTokens: req.maxTokens,
       }
-      let lastErr: unknown
-      for (let attempt = 0; attempt < delays.length; attempt++) {
-        try {
-          return await opts.primary.complete(fullRequest)
-        } catch (e) {
-          lastErr = e
-          const status = (e as { status?: number }).status
-          if (status && !RETRYABLE.has(status)) break
-          await new Promise(r => setTimeout(r, delays[attempt] ?? 1000))
-        }
-      }
+      // Race primary attempt sequence against a hard timeout. Whichever resolves
+      // first wins; on timeout we fall back to the secondary provider.
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null
+      const timeoutPromise = new Promise<{ kind: 'timeout' }>(resolveT => {
+        timeoutHandle = setTimeout(() => resolveT({ kind: 'timeout' }), timeoutMs)
+      })
+      const primaryPromise = tryPrimary(fullRequest).then(
+        r => ({ kind: 'ok' as const, response: r }),
+        e => ({ kind: 'error' as const, error: e as Error }),
+      )
+      const winner = await Promise.race([primaryPromise, timeoutPromise])
+      if (timeoutHandle) clearTimeout(timeoutHandle)
+
+      if (winner.kind === 'ok') return winner.response
+
+      const why = winner.kind === 'timeout'
+        ? `primary exceeded ${timeoutMs}ms timeout`
+        : `primary failed: ${winner.error?.message ?? 'unknown'}`
       opts.onIntervention({
         type: 'auto-fallback',
         what: `switched ${req.role} to fallback model ${opts.models.fallback}`,
-        why: `primary failed: ${(lastErr as Error)?.message ?? 'unknown'}`,
+        why,
       })
       return opts.fallback.complete({ ...fullRequest, model: opts.models.fallback })
     },

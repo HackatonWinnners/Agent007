@@ -1,21 +1,20 @@
+#!/usr/bin/env python3
 import sys
 
+def uppercase_filter(input_text):
+    return input_text.upper()
+
+def lowercase_filter(input_text):
+    return input_text.lower()
+
 def main():
-    if len(sys.argv) != 2:
-        print("error: unknown command", file=sys.stderr)
-        sys.exit(2)
-    
-    command = sys.argv[1]
-    
-    if command == "uppercase":
-        for line in sys.stdin:
-            print(line.upper(), end='')
-    elif command == "reverse":
-        for line in sys.stdin:
-            print(line[::-1], end='')
+    input_text = sys.stdin.read()
+    if len(sys.argv) > 1 and sys.argv[1] == "uppercase":
+        print(uppercasecase_filter(input_text), end='')
+    elif len(sys.argv) > 1:
+        print("Invalid argument. Use 'uppercase' or 'lowercase'.")
     else:
-        print("error: unknown command", file=sys.stderr)
-        sys.exit(2)
+        print("Usage: python3 solution/main.py [uppercase|lowercase]")
 
 if __name__ == "__main__":
     main()
