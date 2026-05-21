@@ -1,16 +1,14 @@
 {
-  "team_name": "TBD",
-  "primary_model": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
-  "provider": "Featherless (free 3-day trial)",
-  "runtime_or_tool": "custom TypeScript/Bun agent",
-  "additional_models": [
-    {"model": "zai-org/GLM-4.6", "provider": "Featherless", "purpose": "planning, failure analysis"},
-    {"model": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "provider": "Featherless", "purpose": "lightweight parsing"},
-    {"model": "qwen2.5-coder:7b", "provider": "Ollama (local)", "purpose": "fallback if Featherless degrades"}
-  ],
+  "team_name": "HackatonWinners",
+  "members": ["@Lap", "@malachi", "@Konstantin", "@SteDP"],
+  "primary_model": "Qwen/Qwen3-Coder-30B-A3B-Instruct (UD-Q4_K_XL GGUF, MoE 3B active)",
+  "provider": "Ollama (local, on contributor's M5 Max MacBook)",
+  "model_id_on_ollama": "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL",
+  "runtime_or_tool": "custom TypeScript/Bun agent (this repo)",
+  "additional_models": [],
   "paid_frontier_models_used_after_spec_release": false,
   "copilot_or_paid_ide_assistant_used_after_spec_release": false,
   "institutional_or_work_model_quota_used_after_spec_release": false,
-  "model_configuration_location": "agent/src/main.ts (MODELS constant)",
-  "notes": "Featherless trial does not require payment during the 3-day window. Disclosure made in good faith. Leaked Claude Code source was studied as an architectural reference and is NOT shipped in this repo; all submitted agent code is original."
+  "model_configuration_location": "agent/src/main.ts (MODEL_ID constant)",
+  "notes": "Final submission uses 100% local inference via Ollama running Qwen3-Coder-30B-A3B-Instruct (unsloth UD-Q4_K_XL quant) on Apple Silicon. No paid API access. During earlier exploration we briefly tested three free-tier cloud providers (Featherless 3-day trial, NVIDIA NIM free tier, Cerebras Cloud free tier); all three are timestamped in agent_logs/human_interventions.log for full transparency, and none of them remain wired in the submitted agent code. Architectural inspiration drawn from the publicly leaked Claude Code source (March 2026); no Claude Code files ship in this repo, every line under agent/ was written by us."
 }

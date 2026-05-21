@@ -4,9 +4,6 @@ import { fileURLToPath } from 'url'
 import { config } from './config'
 import { createLogger } from './logger'
 import { createReadFileCache } from './state/readFileCache'
-import { createCerebrasClient } from './models/cerebras'
-import { createNvidiaClient } from './models/nvidia'
-import { createFeatherlessClient } from './models/featherless'
 import { createOllamaClient } from './models/ollama'
 import { createRouter, type Role as RouterRole } from './models/router'
 import { createRegistry } from './tools/registry'
@@ -28,50 +25,34 @@ import { ui } from './ui'
 const HERE = dirname(fileURLToPath(import.meta.url))
 
 const args = parseArgs(process.argv.slice(2))
-// Resolve spec path relative to the process cwd (where the user ran `bun run`),
-// NOT relative to workingRoot. This lets `--spec ../demo/toy_spec.md` work when
-// the agent process runs from agent/ and demo/ is a sibling of agent/.
+// Spec path resolves relative to cwd of `bun run` (typically the agent/ dir),
+// so `--spec ../secret_spec/SECRET_SPEC.md` works out of the box.
 const specPath = resolve(process.cwd(), args.spec ?? '../secret_spec/SECRET_SPEC.md')
 const workingRoot = resolve(args.repoRoot ?? '..')
 
 const logger = createLogger(config.logDir)
 const readFileCache = createReadFileCache()
 
-const cerebras = createCerebrasClient({ apiKey: config.cerebrasKey, baseUrl: config.cerebrasBaseUrl })
-const nvidia = createNvidiaClient({ apiKey: config.nvidiaKey, baseUrl: config.nvidiaBaseUrl })
-const featherless = createFeatherlessClient({ apiKey: config.featherlessKey, baseUrl: config.featherlessBaseUrl })
+// Single provider: local Ollama. Chosen for predictable latency, zero rate
+// limits, no network dependency, and full hackathon-rule compliance (purely
+// local inference). Both primary and fallback point at the same Ollama
+// instance — fallback is exercised only when the primary call itself throws.
 const ollama = createOllamaClient({ baseUrl: config.ollamaBaseUrl })
-// Cerebras gives 1500-2500 tok/s on Qwen3-235B-A22B (same model family as our
-// previous attempts but vastly faster). NVIDIA NIM and Featherless were both
-// hanging at 120s+ per call on the large spec. Cerebras is primary; NVIDIA
-// stays wired as fallback in case Cerebras rate-limits the free tier.
-// FINAL CONFIG: local Ollama Qwen3-Coder-30B-A3B-Instruct (UD-Q4_K_XL) is
-// primary. Cloud tiers stay wired as fallbacks for resilience.
-const primaryClient = ollama
-const fallbackClient = cerebras
-void nvidia
 
-// DeepSeek-V4-Pro is tools=False on Featherless — our entire agent depends on
-// tool calls (every role's runLoop sends tools), so V4-Pro is unusable here
-// without a major architecture rewrite. Use DeepSeek-V3.2 (newest with tools=True)
-// for everything. Fallback also on Featherless so we don't need Ollama running.
+const MODEL_ID = 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL'
+
 const MODELS: Record<RouterRole | 'fallback', string> = {
-  primary_coder: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
-  planner: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
-  tester: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
-  failure_analyst: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
-  self_test_writer: 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL',
-  // Fallback hits Cerebras with the strongest model on the free tier.
-  fallback: 'qwen-3-235b-a22b-instruct-2507',
+  primary_coder: MODEL_ID,
+  planner: MODEL_ID,
+  tester: MODEL_ID,
+  failure_analyst: MODEL_ID,
+  self_test_writer: MODEL_ID,
+  fallback: MODEL_ID,
 }
 
 const router = createRouter({
-  primary: primaryClient,
-  fallback: fallbackClient,
-  extraFallbacks: [
-    { name: 'nvidia', client: nvidia, model: 'qwen/qwen3-coder-480b-a35b-instruct' },
-    { name: 'featherless', client: featherless, model: 'Qwen/Qwen3-Coder-480B-A35B-Instruct' },
-  ],
+  primary: ollama,
+  fallback: ollama,
   models: MODELS,
   primaryTimeoutMs: config.primaryTimeoutMs,
   onIntervention: info =>
@@ -84,10 +65,6 @@ const router = createRouter({
     }),
 })
 
-// Root toolset for the real hackathon task. We re-enable run_tests, edit,
-// glob, grep, load_skill — DeepSeek-V3.2's empty-args glitch doesn't affect
-// Qwen3-Coder which is our actual primary on NVIDIA. Subagents stay off to
-// keep the loop linear and easier to debug overnight.
 const rootTools = createRegistry([
   readTool, writeTool, editTool, bashTool,
   globTool, grepTool, runTestsTool, loadSkillTool,

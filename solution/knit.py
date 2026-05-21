@@ -5,68 +5,23 @@ import json
 import os
 import re
 
-def expand_brackets(instruction):
-    """Expand bracket notation in instruction string."""
-    # Keep expanding until no more brackets
-    while '[' in instruction and ']' in instruction:
-        # Find the first opening bracket
-        open_bracket_pos = instruction.find('[')
-        if open_bracket_pos == -1:
-            break
-            
-        # Find the matching closing bracket
-        close_bracket_pos = -1
-        bracket_count = 0
-        for i in range(open_bracket_pos, len(instruction)):
-            if instruction[i] == '[':
-                bracket_count += 1
-            elif instruction[i] == ']':
-                bracket_count -= 1
-                if bracket_count == 0:
-                    close_bracket_pos = i
-                    break
-        
-        if close_bracket_pos == -1:
-            break
-            
-        # Extract the bracketed content
-        bracket_content = instruction[open_bracket_pos+1:close_bracket_pos]
-        
-        # Find the repeat count after the bracket
-        # Look for x followed by digits after the closing bracket
-        after_bracket = instruction[close_bracket_pos+1:]
-        repeat_match = re.search(r'\s*x(\d+)', after_bracket)
-        if not repeat_match:
-            break
-            
-        repeat_count = int(repeat_match.group(1))
-        
-        # Replace the bracketed section
-        expanded_section = (bracket_content + ', ') * repeat_count
-        expanded_section = expanded_section.rstrip(', ')
-        
-        # Replace in original instruction
-        instruction = instruction[:open_bracket_pos] + expanded_section + instruction[close_bracket_pos + repeat_match.end():]
-    
-    return instruction
-
 def parse_instructions(instruction):
     """Parse a row instruction string into a list of stitch operations."""
-    # First expand brackets
-    expanded_instruction = expand_brackets(instruction)
-    
-    # Split by comma to get individual operations
-    operations = [op.strip() for op in expanded_instruction.split(',') if op.strip()]
+    # Split the instruction by commas to get individual operations
+    operations = instruction.split(',')
     parsed_ops = []
     
     for op in operations:
+        op = op.strip()
         # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
         match = re.match(r'([a-zA-Z]+)(\d*)', op)
         if match:
             stitch_type = match.group(1)
-            count_str = match.group(2)
-            count = int(count_str) if count_str else 1
+            count = int(match.group(2)) if match.group(2) else 1
             
+            # Handle special cases for stitch count changes
+            # For example, k2tog decreases by 1 stitch per occurrence
+            # yo and inc increase by 1 stitch per occurrence
             parsed_ops.append({
                 "stitch": stitch_type,
                 "count": count
@@ -173,20 +128,16 @@ def main():
             parsed_instructions = parse_instructions(instruction)
             
             # Calculate stitch count changes based on instructions
-            stitch_count = start_stitches
             for op in parsed_instructions:
                 stitch_type = op["stitch"]
                 count = op["count"]
                 if stitch_type == "k2tog":
                     # k2tog decreases stitch count by 1 for each occurrence
-                    stitch_count -= count
+                    current_stitches -= count
                 elif stitch_type in ["yo", "inc"]:
                     # yo and inc increase stitch count by 1 for each occurrence
-                    stitch_count += count
+                    current_stitches += count
                 # Other stitch types like "k" or "p" don't change stitch count
-            
-            # Update current stitches for next row
-            current_stitches = stitch_count
             
             end_stitches = current_stitches
             
