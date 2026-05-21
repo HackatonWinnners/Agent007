@@ -21,6 +21,7 @@ import { spawnSubagentTool, setSpawnContext } from './tools/spawn_subagent'
 import { buildSystemPrompt } from './context'
 import { autoCommit } from './git'
 import { runLoop } from './agent'
+import { ui } from './ui'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
@@ -103,6 +104,15 @@ const systemPrompt = buildSystemPrompt({
   registry: rootTools,
   rolePromptPath: resolve(HERE, 'prompts', 'system_root.md'),
   skillsDir: resolve(HERE, 'skills'),
+})
+
+ui.banner({
+  agentId: 'root',
+  role: 'primary_coder',
+  model: MODELS.primary_coder,
+  cwd: workingRoot,
+  specPath,
+  maxIter: config.maxIterations,
 })
 
 await runLoop({

@@ -3,6 +3,7 @@ import type { Registry } from './tools/registry'
 import type { ReadFileCache } from './state/readFileCache'
 import type { Logger } from './logger'
 import { TOOL_BATCH_PARALLEL_LIMIT } from './config'
+import { ui } from './ui'
 
 export type Role = 'primary_coder' | 'planner' | 'tester' | 'failure_analyst' | 'self_test_writer'
 
@@ -50,6 +51,7 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
 
   for (iteration = 0; iteration < inp.maxIterations; iteration++) {
     inp.onIterationStart(iteration)
+    ui.iter({ agentId: inp.agentId, iteration })
 
     const response = await inp.router.complete({
       role: inp.role,
@@ -61,9 +63,12 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
     lastSummary = summary
     inp.logger.decision({ iteration, agentId: inp.agentId, summary })
 
+    if (response.content) ui.thinking(response.content)
+
     messages.push({ role: 'assistant', content: response.content, toolCalls: response.toolCalls })
 
     if (!response.toolCalls || response.toolCalls.length === 0) {
+      ui.closeIter()
       inp.autoCommit({ cwd: inp.cwd, message: `iter ${iteration} (${inp.agentId}): ${summary}` })
       break
     }
@@ -84,6 +89,7 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
         filesAffected: [],
         touchedFinalCode: false,
       })
+      ui.intervention('cycle-detected', 'pruned last 4 messages')
       messages.splice(-4)
       lastToolCallHashes = []
     }
@@ -106,22 +112,36 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
 
     const safeBatch = safe.slice(0, TOOL_BATCH_PARALLEL_LIMIT)
     const safeResults = await Promise.all(
-      safeBatch.map(tc => inp.tools.invoke(tc.name, tc.args, ctx).then(r => ({ tc, r }))),
+      safeBatch.map(async tc => {
+        ui.toolCall(tc.name, tc.args)
+        const r = await inp.tools.invoke(tc.name, tc.args, ctx)
+        ui.toolResult(tc.name, r.raw.ok, r.rendered)
+        return { tc, r }
+      }),
     )
     const unsafeResults: { tc: ToolCall; r: { rendered: string; raw: { ok: boolean } } }[] = []
     for (const tc of unsafe) {
+      ui.toolCall(tc.name, tc.args)
       const r = await inp.tools.invoke(tc.name, tc.args, ctx)
+      ui.toolResult(tc.name, r.raw.ok, r.rendered)
       unsafeResults.push({ tc, r })
     }
     for (const { tc, r } of [...safeResults, ...unsafeResults]) {
       messages.push({ role: 'tool', toolCallId: tc.id, content: r.rendered })
-      if (tc.name === 'submit_done') halted = true
+      if (tc.name === 'submit_done') {
+        halted = true
+        const reason = typeof tc.args.reason === 'string' ? tc.args.reason : ''
+        ui.halt(reason)
+      }
     }
 
+    ui.closeIter()
     inp.autoCommit({ cwd: inp.cwd, message: `iter ${iteration} (${inp.agentId}): ${summary}` })
 
     if (halted) break
   }
+
+  ui.done(iteration + 1)
 
   return { iterations: iteration + 1, halted, lastSummary }
 }
