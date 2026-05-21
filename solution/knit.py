@@ -7,8 +7,29 @@ import re
 
 def parse_knit_file(file_path):
     with open(file_path, 'r') as f:
-        content = f.read()
-    return content
+        lines = f.readlines()
+    
+    pattern_name = None
+    cast_on = None
+    bind_off = False
+    rows = []
+    
+    for line in lines:
+        line = line.strip()
+        if line.startswith('pattern "'):
+            pattern_name = line.split('"')[1]
+        elif line.startswith('cast_on '):
+            cast_on = int(line.split(' ')[1])
+        elif line.startswith('bind_off'):
+            bind_off = True
+        elif line.startswith('row '):
+            # Extract row number and instructions
+            parts = line.split(': ')
+            row_number = int(parts[0].split(' ')[1].rstrip(':'))
+            instruction = parts[1] if len(parts) > 1 else ""
+            rows.append((row_number, instruction))
+    
+    return pattern_name, cast_on, bind_off, rows
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != "compile":
@@ -22,17 +43,20 @@ def main():
         sys.exit(2)
     
     try:
-        content = parse_knit_file(input_file)
-        # Basic parsing logic would go here
-        # For now, we'll just output a valid JSON structure
+        pattern_name, cast_on, bind_off, rows = parse_knit_file(input_file)
+        
+        # Process the rows to get final stitch count
+        # For now, we'll just use the cast_on value as the final stitch count
+        final_stitch_count = cast_on
+        
         result = {
-            "pattern_name": "Test Pattern",
-            "cast_on": 10,
+            "pattern_name": pattern_name,
+            "cast_on": cast_on,
             "valid": True,
             "errors": [],
             "expanded_rows": [],
-            "final_stitch_count": 10,
-            "bind_off": False
+            "final_stitch_count": final_stitch_count,
+            "bind_off": bind_off
         }
         
         print(json.dumps(result, indent=2))
