@@ -22,7 +22,8 @@ export function createRegistry(tools: Tool[]): Registry {
       }
       const parsed = tool.parse(args)
       if ('__error' in parsed) {
-        const r = { ok: false as const, error: parsed.__error }
+        const errMsg = typeof parsed.__error === 'string' ? parsed.__error : 'invalid input'
+        const r: ToolResult = { ok: false, error: errMsg }
         return { rendered: tool.renderResult(r), raw: r }
       }
       const out = await tool.call(parsed as never, ctx)
