@@ -13,13 +13,15 @@ def parse_instructions(instruction):
     
     for op in operations:
         op = op.strip()
-        # Match pattern like "k4" or "p3" or "k2tog"
+        # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
         match = re.match(r'([a-zA-Z]+)(\d*)', op)
         if match:
             stitch_type = match.group(1)
             count = int(match.group(2)) if match.group(2) else 1
-            # For now, we'll assume all operations maintain the same stitch count
-            # A full implementation would need to parse k2tog (decrease) and yo (increase)
+            
+            # Handle special cases for stitch count changes
+            # For example, k2tog decreases by 1 stitch per occurrence
+            # yo and inc increase by 1 stitch per occurrence
             parsed_ops.append({
                 "stitch": stitch_type,
                 "count": count
@@ -35,6 +37,7 @@ def parse_knit_file(file_path):
     cast_on = None
     bind_off = False
     rows = []
+    repeats = []
     
     for line in lines:
         line = line.strip()
@@ -50,8 +53,28 @@ def parse_knit_file(file_path):
             row_number = int(parts[0].split(' ')[1].rstrip(':'))
             instruction = parts[1] if len(parts) > 1 else ""
             rows.append((row_number, instruction))
+        elif line.startswith('repeat rows '):
+            # Handle repeat rows instruction
+            # Format: repeat rows ROWS xN
+            # Example: repeat rows 01-03 x2
+            parts = line.split(' ')
+            repeat_def = parts[2]  # e.g., "01-03"
+            repeat_count = int(parts[3][1:])  # e.g., "2" from "x2"
+            # Parse the repeat definition
+            if '-' in repeat_def:
+                start_row, end_row = repeat_def.split('-')
+                start_row = int(start_row)
+                end_row = int(end_row)
+            else:
+                start_row = end_row = int(repeat_def)
+            
+            repeats.append({
+                "start_row": start_row,
+                "end_row": end_row,
+                "count": repeat_count
+            })
     
-    return pattern_name, cast_on, bind_off, rows
+    return pattern_name, cast_on, bind_off, rows, repeats
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != "compile":
@@ -65,23 +88,60 @@ def main():
         sys.exit(2)
     
     try:
-        pattern_name, cast_on, bind_off, rows = parse_knit_file(input_file)
+        pattern_name, cast_on, bind_off, rows, repeats = parse_knit_file(input_file)
         
         # Process the rows to get final stitch count
-        # For now, we'll just use the cast_on value as the final stitch count
-        final_stitch_count = cast_on
+        current_stitches = cast_on
         expanded_rows = []
+        expanded_instructions = []
         expanded_row_index = 1
         
+        # First, expand the rows with repeats
+        expanded_rows_list = []
+        
+        # Add the original rows first
         for row_num, instruction in rows:
-            # For now, assume start_stitches equals cast_on and no stitch changes
-            start_stitches = cast_on
-            end_stitches = cast_on  # This will need to be calculated based on instructions
+            expanded_rows_list.append((row_num, instruction))
+        
+        # Then handle repeats
+        for repeat in repeats:
+            start_row = repeat["start_row"]
+            end_row = repeat["end_row"]
+            count = repeat["count"]
+            
+            # Find the rows to repeat
+            rows_to_repeat = []
+            for row_num, instruction in rows:
+                if start_row <= row_num <= end_row:
+                    rows_to_repeat.append((row_num, instruction))
+            
+            # Add repeated rows
+            for _ in range(count):
+                for row_num, instruction in rows_to_repeat:
+                    expanded_rows_list.append((row_num, instruction))
+        
+        # Process the expanded rows
+        for row_num, instruction in expanded_rows_list:
+            start_stitches = current_stitches
             
             # Parse the instruction string into a list of stitch operations
             parsed_instructions = parse_instructions(instruction)
             
-            expanded_rows.append({
+            # Calculate stitch count changes based on instructions
+            for op in parsed_instructions:
+                stitch_type = op["stitch"]
+                count = op["count"]
+                if stitch_type == "k2tog":
+                    # k2tog decreases stitch count by 1 for each occurrence
+                    current_stitches -= count
+                elif stitch_type in ["yo", "inc"]:
+                    # yo and inc increase stitch count by 1 for each occurrence
+                    current_stitches += count
+                # Other stitch types like "k" or "p" don't change stitch count
+            
+            end_stitches = current_stitches
+            
+            expanded_instructions.append({
                 "source_row": row_num,
                 "expanded_row_index": expanded_row_index,
                 "start_stitches": start_stitches,
@@ -90,14 +150,14 @@ def main():
             })
             expanded_row_index += 1
         
-        final_stitch_count = cast_on
+        final_stitch_count = current_stitches
         
         result = {
             "pattern_name": pattern_name,
             "cast_on": cast_on,
             "valid": True,
             "errors": [],
-            "expanded_rows": expanded_rows,
+            "expanded_rows": expanded_instructions,
             "final_stitch_count": final_stitch_count,
             "bind_off": bind_off
         }
