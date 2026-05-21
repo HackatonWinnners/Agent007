@@ -1,0 +1,1 @@
+[2026-05-21 18:16:16] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
