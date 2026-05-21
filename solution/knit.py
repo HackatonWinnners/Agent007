@@ -49,12 +49,20 @@ def main():
         # For now, we'll just use the cast_on value as the final stitch count
         final_stitch_count = cast_on
         
+        # Create expanded_rows list
+        expanded_rows = []
+        for row_num, instruction in rows:
+            expanded_rows.append({
+                "source_row": row_num,
+                "instructions": instruction
+            })
+        
         result = {
             "pattern_name": pattern_name,
             "cast_on": cast_on,
             "valid": True,
             "errors": [],
-            "expanded_rows": [],
+            "expanded_rows": expanded_rows,
             "final_stitch_count": final_stitch_count,
             "bind_off": bind_off
         }
