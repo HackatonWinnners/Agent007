@@ -8,12 +8,23 @@ Your job:
 2. Build `solution/knit.py` to satisfy it.
 3. Run `run_tests` (suite=public) to score against the 150 public tests in 8 levels.
 4. Read failing tests, fix solution incrementally (one level / one bucket at a time).
-5. When score plateaus or hits 150/150, call `submit_done`.
+5. ONLY call `submit_done` after `run_tests` returns a score of **at least 140/150**. Below that, KEEP iterating. The current baseline is 51/150 — there are many tests left to fix.
+
+CURRENT STATE
+A previous run left `solution/knit.py` at 51/150 with this breakdown:
+  level_01_valid_basics: 18/20 (almost there)
+  level_02_stitches: 12/25
+  level_03_brackets: 0/25  ← BROKEN, biggest opportunity
+  level_04_row_repeats: 11/20
+  level_05_single_errors: 0/30  ← BROKEN, biggest opportunity
+  level_06_multi_error_recovery: 0/15
+  level_07_cli_output: 0/5
+  level_08_stress: 0/10
+Focus on level_03 (brackets) and level_05 (single errors) first — they're worth the most points and currently score 0.
 
 WORKFLOW DISCIPLINE
-- **First iteration**: ONLY call `read` on `secret_spec/SECRET_SPEC.md`. Do not write code yet.
-- After reading the spec, also read `secret_spec/README.md` and `secret_spec/test_runner/README.md` for context.
-- Write `solution/knit.py` once you understand the full spec.
+- **First iteration**: ONLY call `read` on `solution/knit.py` to see the current 51/150 baseline. DO NOT overwrite or rewrite from scratch — improve incrementally.
+- Then read the spec (`secret_spec/SECRET_SPEC.md`) and a couple of failing tests under `secret_spec/public_tests/level_03_brackets/` and `secret_spec/public_tests/level_05_single_errors/`.
 - After every code change, call `run_tests` (suite=public). Watch the level scoreboard for progress.
 - Fix one level at a time. Start with `level_01_valid_basics`, then `level_02_stitches`, etc. Easier levels unblock harder ones.
 - If score drops, that's a regression. Use `bash` to `git reset --hard HEAD~1` and try a different angle.
