@@ -5,6 +5,58 @@ import type { Logger } from './logger'
 import { TOOL_BATCH_PARALLEL_LIMIT } from './config'
 import { ui } from './ui'
 
+// Compaction tuning. Tool-result bodies dominate context size — `read` of the
+// 38KB knitting spec alone burns ~10K tokens. Once we've moved past those
+// results we shorten them so the model focuses on what's recent.
+const TOOL_RESULTS_KEPT_FULL = 4         // last N tool results stay verbatim
+const TOOL_RESULT_OLD_MAX_CHARS = 600    // older tool results compressed to head+tail of this many chars
+const COMPACT_TRIGGER_TOTAL_CHARS = 60_000  // estimate; ~15K tokens — well under 60K TPM
+const SYSTEM_REMINDER_TAG = '__agent_compaction_reminder__'
+
+function compactMessages(messages: ChatMessage[], logger: Logger, agentId: string): void {
+  // Cheap size estimate.
+  let total = 0
+  for (const m of messages) {
+    const c = (m as { content?: string | null }).content
+    if (typeof c === 'string') total += c.length
+  }
+  if (total < COMPACT_TRIGGER_TOTAL_CHARS) return
+
+  // Find tool messages from newest to oldest.
+  const toolIdxFromNewest: number[] = []
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]!.role === 'tool') toolIdxFromNewest.push(i)
+  }
+  // The first TOOL_RESULTS_KEPT_FULL get to keep their full content;
+  // older ones get squashed.
+  const olderToolIdx = toolIdxFromNewest.slice(TOOL_RESULTS_KEPT_FULL)
+  let squashedCount = 0
+  for (const idx of olderToolIdx) {
+    const m = messages[idx]
+    if (m && m.role === 'tool') {
+      const c = m.content
+      if (c && c.length > TOOL_RESULT_OLD_MAX_CHARS) {
+        const half = Math.floor(TOOL_RESULT_OLD_MAX_CHARS / 2)
+        const head = c.slice(0, half)
+        const tail = c.slice(c.length - half)
+        m.content = `${head}\n... [${c.length - TOOL_RESULT_OLD_MAX_CHARS} chars elided to fit context] ...\n${tail}`
+        squashedCount++
+      }
+    }
+  }
+  if (squashedCount > 0) {
+    logger.intervention({
+      type: 'auto-compaction',
+      what: `squashed ${squashedCount} old tool_results to ${TOOL_RESULT_OLD_MAX_CHARS} chars head+tail`,
+      why: `total content ~${total} chars exceeded ${COMPACT_TRIGGER_TOTAL_CHARS} threshold`,
+      filesAffected: [],
+      touchedFinalCode: false,
+    })
+    ui.intervention('auto-compaction', `squashed ${squashedCount} old tool_results`)
+  }
+}
+void SYSTEM_REMINDER_TAG
+
 export type Role = 'primary_coder' | 'planner' | 'tester' | 'failure_analyst' | 'self_test_writer'
 
 type Router = {
@@ -52,6 +104,10 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
   for (iteration = 0; iteration < inp.maxIterations; iteration++) {
     inp.onIterationStart(iteration)
     ui.iter({ agentId: inp.agentId, iteration })
+
+    // Compact history before every model call so Cerebras's 60K TPM window
+    // stays usable on long-running grinds.
+    compactMessages(messages, inp.logger, inp.agentId)
 
     const response = await inp.router.complete({
       role: inp.role,
