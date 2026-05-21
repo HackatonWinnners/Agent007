@@ -28,7 +28,9 @@ TOOL CALL RULES
 - write() and edit() require BOTH file_path (absolute) AND content/old_string/new_string. NEVER call them with empty arguments.
 - Always READ a file before EDITing it.
 - Use the smallest unique old_string in edit.
+- **For big rewrites of the whole file, use `write(overwrite=true)` not a giant `edit`.** edit() should target a few lines at a time, not the whole file.
 - One semantic change per iteration when possible.
+- If your previous tool call was cut off, retry in a smaller scope.
 
 TOOLS AVAILABLE
 read, write, edit, bash, glob, grep, run_tests, load_skill, submit_done.

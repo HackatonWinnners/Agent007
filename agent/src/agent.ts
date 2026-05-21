@@ -68,6 +68,29 @@ export async function runLoop(inp: LoopInputs): Promise<LoopResult> {
     messages.push({ role: 'assistant', content: response.content, toolCalls: response.toolCalls })
 
     if (!response.toolCalls || response.toolCalls.length === 0) {
+      // Heuristic: if the assistant content looks like a truncated XML tool call
+      // (contains <function= or <parameter= without matching close), DON'T halt.
+      // Inject a synthetic user nudge and continue — the model probably ran out
+      // of max_tokens mid-call.
+      const c = response.content ?? ''
+      const truncatedFn = c.includes('<function=') && !c.includes('</function>')
+      const truncatedParam = c.includes('<parameter=') && !c.includes('</parameter>')
+      if (truncatedFn || truncatedParam) {
+        inp.logger.intervention({
+          type: 'truncated-tool-call',
+          what: 'detected truncated XML tool call in assistant content, injecting retry nudge',
+          why: c.slice(-200),
+          filesAffected: [],
+          touchedFinalCode: false,
+        })
+        ui.intervention('truncated-tool-call', 'model output was cut off; retrying with smaller scope hint')
+        messages.push({
+          role: 'user',
+          content: 'Your previous tool call was truncated (output cut off mid-XML). Retry the same intent but break into smaller steps if you were trying a large edit. Prefer write(overwrite=true) over a giant edit() for big rewrites.',
+        })
+        ui.closeIter()
+        continue
+      }
       ui.closeIter()
       inp.autoCommit({ cwd: inp.cwd, message: `iter ${iteration} (${inp.agentId}): ${summary}` })
       break

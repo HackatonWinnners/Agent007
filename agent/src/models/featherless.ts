@@ -36,7 +36,7 @@ export function createFeatherlessClient(opts: { apiKey: string; baseUrl: string 
         model: req.model,
         messages: toApi(req.messages),
         temperature: req.temperature ?? 0.2,
-        max_tokens: req.maxTokens ?? 4096,
+        max_tokens: req.maxTokens ?? 16384,
         ...(req.tools && req.tools.length > 0
           ? {
               tools: req.tools.map(t => ({
