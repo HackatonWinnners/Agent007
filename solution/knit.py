@@ -5,6 +5,28 @@ import json
 import os
 import re
 
+def parse_instructions(instruction):
+    """Parse a row instruction string into a list of stitch operations."""
+    # Split the instruction by commas to get individual operations
+    operations = instruction.split(',')
+    parsed_ops = []
+    
+    for op in operations:
+        op = op.strip()
+        # Match pattern like "k4" or "p3" or "k2tog"
+        match = re.match(r'([a-zA-Z]+)(\d*)', op)
+        if match:
+            stitch_type = match.group(1)
+            count = int(match.group(2)) if match.group(2) else 1
+            # For now, we'll assume all operations maintain the same stitch count
+            # A full implementation would need to parse k2tog (decrease) and yo (increase)
+            parsed_ops.append({
+                "stitch": stitch_type,
+                "count": count
+            })
+    
+    return parsed_ops
+
 def parse_knit_file(file_path):
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -56,12 +78,15 @@ def main():
             start_stitches = cast_on
             end_stitches = cast_on  # This will need to be calculated based on instructions
             
+            # Parse the instruction string into a list of stitch operations
+            parsed_instructions = parse_instructions(instruction)
+            
             expanded_rows.append({
                 "source_row": row_num,
                 "expanded_row_index": expanded_row_index,
                 "start_stitches": start_stitches,
                 "end_stitches": end_stitches,
-                "instructions": instruction
+                "instructions": parsed_instructions
             })
             expanded_row_index += 1
         
