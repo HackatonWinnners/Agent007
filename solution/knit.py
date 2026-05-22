@@ -9,10 +9,6 @@ def parse_stitch_operation(op):
     # Remove comments and whitespace
     op = op.split('#')[0].strip()
     
-    # Handle special operations
-    if op == 'dec':
-        return {'stitch': 'k2tog', 'count': 1}
-    
     # Handle counted stitches like k10, p5, etc.
     match = re.match(r'^([a-z]+)(\d+)$', op)
     if match:
@@ -25,6 +21,24 @@ def parse_stitch_operation(op):
         return {'stitch': op, 'count': 1}
     
     return None
+
+def simulate_stitch_count(instructions, start_stitches):
+    """Simulate stitch count changes for a row"""
+    current_stitches = start_stitches
+    
+    for instr in instructions:
+        parsed = parse_stitch_operation(instr)
+        if parsed:
+            # The key insight: for k10, it consumes 10 and produces 10, so net 0
+            # For k2tog, it consumes 2 and produces 1, so net -1
+            if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
+                # These don't change the stitch count
+                pass
+            elif parsed['stitch'] in ['k2tog', 'dec']:
+                # These reduce stitch count by 1
+                current_stitches -= 1
+    
+    return current_stitches
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -160,55 +174,29 @@ def main():
     # Process rows
     expanded_rows = []
     
-    # Simulate stitch counts
-    current_stitches = cast_on
+    # Process each row
     for i, row in enumerate(rows):
-        # Calculate end stitches
-        end_stitches = current_stitches
-        
-        for instr in row['instructions']:
-            parsed = parse_stitch_operation(instr)
-            if parsed:
-                # For each stitch type, calculate the net change
-                if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
-                    # These consume and produce the same number of stitches
-                    end_stitches += parsed['count']
-                elif parsed['stitch'] in ['k2tog', 'dec']:
-                    # These consume 2 stitches and produce 1 stitch (net -1)
-                    end_stitches -= 1
-            else:
-                errors.append({
-                    'type': 'error',
-                    'code': 'UNKNOWN_STITCH',
-                    'message': f'Unknown stitch {instr}.',
-                    'line': line_num,
-                    'row': row['row_num']
-                })
-        
         # Add to expanded rows
         expanded_rows.append({
             'expanded_row_index': i + 1,
             'source_row': row['row_num'],
             'instructions': row['instructions'],
-            'start_stitches': current_stitches,
-            'end_stitches': end_stitches
+            'start_stitches': cast_on if i == 0 else expanded_rows[i-1]['end_stitches'],
+            'end_stitches': 0  # Will be calculated
         })
-        
-        current_stitches = end_stitches
     
-    # Check for errors
-    if errors:
-        result = {
-            'pattern_name': pattern_name,
-            'cast_on': cast_on,
-            'valid': False,
-            'errors': errors,
-            'expanded_rows': [],
-            'final_stitch_count': None,
-            'bind_off': bind_off
-        }
-        print(json.dumps(result, indent=2))
-        sys.exit(1)
+    # Simulate stitch counts
+    for i, row in enumerate(expanded_rows):
+        if i == 0:
+            current_stitches = cast_on
+        else:
+            current_stitches = expanded_rows[i-1]['end_stitches']
+        
+        # Calculate end stitches
+        end_stitches = simulate_stitch_count(row['instructions'], current_stitches)
+        
+        expanded_rows[i]['start_stitches'] = current_stitches
+        expanded_rows[i]['end_stitches'] = end_stitches
     
     # Final result
     result = {
