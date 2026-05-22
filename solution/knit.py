@@ -19,113 +19,89 @@ class KnitCompiler:
         if not line or line.startswith('#'):
             return None
         
-        # Parse pattern name
+        # Pattern name
         pattern_match = re.match(r'^pattern\s+(.+)$', line)
         if pattern_match:
-            self.pattern_name = pattern_match.group(1).strip('"\'')
+            self.pattern_name = pattern_match.group(1).strip().strip('"\'')
             return True
         
-        # Parse cast_on
+        # Cast on
         cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
         if cast_on_match:
             self.cast_on = int(cast_on_match.group(1))
             return True
         
-        # Parse rows
-        if line.startswith('rows'):
-            return True  # Just a marker
-        
-        # Parse row definition
-        row_match = re.match(r'^(\d+)\s+(.*)$', line)
-        if row_match:
-            row_num = int(row_match.group(1))
-            content = row_match.group(2)
-            self.rows.append((row_num, content))
+        # Bind off
+        bind_off_match = re.match(r'^bind_off$', line)
+        if bind_off_match:
+            self.bind_off = True
             return True
         
-        # Parse bind_off
-        if line == 'bind_off':
-            self.bind_off = True
+        # Row definition
+        row_match = re.match(r'^row\s+(.+)$', line)
+        if row_match:
+            self.rows.append(row_match.group(1).strip())
             return True
         
         return False
 
-    def expand_row(self, row_num, content):
-        # Simple expansion - just return the content as-is for now
-        return content
+    def expand_row(self, row_str):
+        # Simple expansion - just return the row as-is for now
+        return row_str
 
-    def simulate_row(self, row_num, content, stitch_count):
-        # Simple simulation - just return the stitch count
-        return stitch_count
+    def simulate_row(self, row_str, current_stitches):
+        # Simple simulation - just return the current stitch count
+        return current_stitches
 
-    def compile(self, file_path):
+    def expand_rows(self):
+        # Expand rows with repeats
+        expanded = []
+        for i, row in enumerate(self.rows):
+            expanded.append(row)
+        return expanded
+
+    def simulate_stitches(self):
+        # Simple simulation
+        if not self.rows:
+            return [self.cast_on] if self.cast_on is not None else [0]
+        
+        # For now, just return the cast_on count
+        return [self.cast_on] if self.cast_on is not None else [0]
+
+    def compile(self, filename):
         try:
-            with open(file_path, 'r') as f:
+            with open(filename, 'r') as f:
                 lines = f.readlines()
             
-            # Parse the file
-            for line_num, line in enumerate(lines, 1):
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                
-                # Parse pattern name
-                pattern_match = re.match(r'^pattern\s+(.+)$', line)
-                if pattern_match:
-                    self.pattern_name = pattern_match.group(1).strip('"\'')
-                    continue
-                
-                # Parse cast_on
-                cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
-                if cast_on_match:
-                    self.cast_on = int(cast_on_match.group(1))
-                    continue
-                
-                # Parse rows
-                if line.startswith('rows'):
-                    continue  # Just a marker
-                
-                # Parse row definition
-                row_match = re.match(r'^(\d+)\s+(.*)$', line)
-                if row_match:
-                    row_num = int(row_match.group(1))
-                    content = row_match.group(2)
-                    self.rows.append((row_num, content))
-                    continue
-                
-                # Parse bind_off
-                if line == 'bind_off':
-                    self.bind_off = True
-                    continue
-                
-                # If we get here, it's an unrecognized line
-                self.errors.append(f"Unrecognized line {line_num}: {line}")
-                
+            for line in lines:
+                self.parse_line(line)
+            
             # Expand rows
-            stitch_count = self.cast_on
-            for i, (row_num, content) in enumerate(self.rows):
-                expanded_content = self.expand_row(row_num, content)
-                final_stitch_count = self.simulate_row(row_num, content, stitch_count)
-                
-                # Build expanded row
-                expanded_row = {
-                    "expanded_row_index": i,
-                    "source_row": row_num,
-                    "start_stitches": stitch_count,
-                    "end_stitches": final_stitch_count,
-                    "instructions": expanded_content
-                }
-                
-                self.expanded_rows.append(expanded_row)
-                stitch_count = final_stitch_count
-                
+            expanded_rows = self.expand_rows()
+            
+            # Simulate stitch counts
+            stitch_counts = self.simulate_stitches()
+            
             # Build result
             result = {
-                "valid": len(self.errors) == 0,
+                "pattern_name": self.pattern_name,
+                "cast_on": self.cast_on,
+                "bind_off": self.bind_off,
                 "errors": self.errors,
-                "final_stitch_count": stitch_count,
-                "expanded_rows": self.expanded_rows
+                "valid": len(self.errors) == 0,
+                "final_stitch_count": stitch_counts[-1] if stitch_counts else None,
+                "expanded_rows": []
             }
+            
+            # Add expanded rows with proper structure
+            for i, row in enumerate(expanded_rows):
+                result["expanded_rows"].append({
+                    "source_row": row,
+                    "expanded_row_index": i,
+                    "start_stitches": self.cast_on if i == 0 else stitch_counts[i-1],
+                    "end_stitches": stitch_counts[i] if i < len(stitch_counts) else self.cast_on,
+                    "instructions": [row]
+                })
             
             print(json.dumps(result))
             
