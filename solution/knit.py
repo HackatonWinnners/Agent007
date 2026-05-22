@@ -47,34 +47,31 @@ def calculate_stitch_change(stitch_op):
 def expand_brackets(instructions):
     """Expand bracketed repeats in instructions"""
     expanded = []
-    i = 0
-    while i < len(instructions):
-        instr = instructions[i]
-        
-        # Check for bracketed pattern
+    
+    for instr in instructions:
+        # Check if instruction has brackets
         if instr.startswith('[') and instr.endswith(']'):
             # Extract the pattern and repeat count
-            bracket_content = instr[1:-1].strip()
+            pattern_content = instr[1:-1].strip()
             
-            # Find the repeat part
-            repeat_match = re.search(r'x(\d+)$', bracket_content)
+            # Find repeat count (x<number>) at the end
+            repeat_match = re.search(r'x(\d+)$', pattern_content)
             if repeat_match:
                 repeat_count = int(repeat_match.group(1))
-                pattern_content = bracket_content[:repeat_match.start()].strip()
+                # Remove the repeat part to get just the pattern
+                pattern_only = pattern_content[:repeat_match.start()].strip()
                 
                 # Split the pattern into individual instructions
-                pattern_parts = [part.strip() for part in pattern_content.split(',') if part.strip()]
+                pattern_parts = [part.strip() for part in pattern_only.split(',') if part.strip()]
                 
                 # Add the pattern repeated times
                 for _ in range(repeat_count):
                     expanded.extend(pattern_parts)
             else:
-                # No repeat count found, just add as-is
+                # No repeat count, add as-is
                 expanded.append(instr)
         else:
             expanded.append(instr)
-        
-        i += 1
     
     return expanded
 
