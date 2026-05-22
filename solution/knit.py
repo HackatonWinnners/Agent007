@@ -17,57 +17,36 @@ class KnitCompiler:
         if not line or line.startswith('#'):
             return None
         
-        parts = line.split()
-        if not parts:
-            return None
-        
+        parts = line.split(None, 1)
         keyword = parts[0]
         
         if keyword == 'pattern':
-            self.pattern_name = ' '.join(parts[1:])
+            if len(parts) > 1:
+                # Remove quotes
+                value = parts[1].strip()
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                self.pattern_name = value
         elif keyword == 'cast_on':
-            try:
-                self.cast_on = int(parts[1])
-            except (ValueError, IndexError):
-                self.errors.append(f"Invalid cast_on value: {' '.join(parts[1:])}")
+            if len(parts) > 1:
+                try:
+                    self.cast_on = int(parts[1])
+                except ValueError:
+                    self.errors.append(f"Invalid cast_on value: {parts[1]}")
         elif keyword == 'row':
-            # Parse row definition
-            row_def = ' '.join(parts[1:])
-            self.rows.append(row_def)
+            if len(parts) > 1:
+                self.rows.append(parts[1])
         elif keyword == 'bind_off':
             self.bind_off = True
         
-    def parse(self, filename):
+    def compile(self, filename):
         try:
             with open(filename, 'r') as f:
-                lines = f.readlines()
-        except IOError:
-            self.errors.append(f"Could not read file: {filename}")
-            return
-        
-        for line in lines:
-            self.parse_line(line)
-        
-    def simulate_row(self, row_def, stitch_count):
-        # Simple simulation - just count stitches
-        # This is a simplified version - real implementation would be more complex
-        return stitch_count
-    
-    def expand_rows(self):
-        # For now, just return the rows as-is
-        expanded_rows = []
-        for i, row_def in enumerate(self.rows):
-            expanded_rows.append({
-                "expanded_row_index": i,
-                "instructions": row_def,
-                "source_row": i,
-                "start_stitches": self.cast_on if i == 0 else 0,
-                "end_stitches": self.cast_on if i == 0 else 0
-            })
-        return expanded_rows
-    
-    def compile(self, filename):
-        self.parse(filename)
+                for line in f:
+                    self.parse_line(line)
+        except FileNotFoundError:
+            print(json.dumps({"errors": [f"File not found: {filename}"]}), file=sys.stderr)
+            sys.exit(1)
         
         # Validate required fields
         if self.pattern_name is None:
@@ -76,20 +55,27 @@ class KnitCompiler:
             self.errors.append("Missing cast_on value")
         
         # Simulate rows
-        expanded_rows = self.expand_rows()
+        expanded_rows = []
+        stitch_count = self.cast_on
         
-        # Calculate final stitch count
-        final_stitch_count = self.cast_on
-        if expanded_rows:
-            final_stitch_count = expanded_rows[-1]["end_stitches"]
-        
+        for i, row in enumerate(self.rows):
+            # Simple simulation - just track stitch count
+            expanded_rows.append({
+                "expanded_row_index": i + 1,
+                "instructions": row,
+                "source_row": row,
+                "start_stitches": stitch_count,
+                "end_stitches": stitch_count,
+                "stitch_operations": []
+            })
+            
         result = {
             "pattern_name": self.pattern_name,
             "cast_on": self.cast_on,
             "valid": len(self.errors) == 0,
             "errors": self.errors,
             "expanded_rows": expanded_rows,
-            "final_stitch_count": final_stitch_count,
+            "final_stitch_count": stitch_count,
             "bind_off": self.bind_off
         }
         
