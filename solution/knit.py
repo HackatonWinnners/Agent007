@@ -80,7 +80,7 @@ class KnitCompiler:
                 "end_stitches": stitch_count,
                 "stitch_operations": row
             })
-        
+    
     def print_result(self):
         result = {
             "pattern_name": self.pattern_name,
