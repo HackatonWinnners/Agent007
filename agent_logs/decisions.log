@@ -94,3 +94,4 @@
 [2026-05-22 09:48:38] DECISION {"iteration":12,"agentId":"root","summary":"tools=[bash({\"cmd\":\"find /Users/madvil2/Projects/needle-agent/secret_spec -name \\\"*.expected.json\\\" | head -5\"})]"}
 [2026-05-22 09:48:39] DECISION {"iteration":13,"agentId":"root","summary":"Let me check the error test expected outputs:"}
 [2026-05-22 09:48:40] DECISION {"iteration":14,"agentId":"root","summary":"tools=[bash({\"cmd\":\"find /Users/madvil2/Projects/needle-agent/secret_spec/expected_outputs -name \\\"*level_05*\\\"\"})]"}
+[2026-05-22 09:48:43] DECISION {"iteration":15,"agentId":"root","summary":"Let me look at one of the error test cases to understand the expected error format: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/expected_outputs/public/level_05_single_errors/pub_level_)]"}
