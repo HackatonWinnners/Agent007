@@ -12,3 +12,4 @@
 [2026-05-22 09:35:06] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me check the expected output for this test case:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:35:06] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~58s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:35:07] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~57s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:35:09] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~55s left after recent 429","filesAffected":[],"touchedFinalCode":false}
