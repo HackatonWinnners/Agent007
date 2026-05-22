@@ -123,7 +123,7 @@ def simulate_stitch_count(instructions, start_stitches):
                 current_stitches += parsed['count']
             elif parsed['stitch'] in ['k2tog', 'dec']:
                 current_stitches -= 1
-        
+    
     return current_stitches
 
 def main():
