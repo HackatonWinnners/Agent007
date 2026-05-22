@@ -11,16 +11,23 @@ Your job:
 5. ONLY call `submit_done` after `run_tests` returns a score of **at least 140/150**. Below that, KEEP iterating. The current baseline is 51/150 — there are many tests left to fix.
 
 CURRENT STATE
-A previous run left `solution/knit.py` at 51/150 with this breakdown:
-  level_01_valid_basics: 18/20 (almost there)
+`solution/knit.py` is at 71/150 (47%) with this breakdown:
+  level_01_valid_basics: 18/20
   level_02_stitches: 12/25
-  level_03_brackets: 0/25  ← BROKEN, biggest opportunity
-  level_04_row_repeats: 11/20
-  level_05_single_errors: 0/30  ← BROKEN, biggest opportunity
+  level_03_brackets: 17/25  (failures on nested brackets like `[k1, p1] x2`)
+  level_04_row_repeats: 12/20
+  level_05_single_errors: 1/30  ← MASSIVE OPPORTUNITY (29 points to gain)
   level_06_multi_error_recovery: 0/15
-  level_07_cli_output: 0/5
-  level_08_stress: 0/10
-Focus on level_03 (brackets) and level_05 (single errors) first — they're worth the most points and currently score 0.
+  level_07_cli_output: 4/5
+  level_08_stress: 7/10
+
+BIGGEST WINS (in priority order)
+1. **level_05_single_errors (1/30)** — error handling. Read 3 failing tests under `secret_spec/public_tests/level_05_single_errors/`, look at expected output in `secret_spec/expected_outputs/public/level_05_single_errors/*.expected.json`, see what error `type`/`code`/`line` the runner expects. The current solution likely doesn't emit errors in the right structured shape.
+2. **level_06_multi_error_recovery (0/15)** — collect multiple errors per file, sort them by line, keep going after the first error.
+3. **level_03_brackets (17/25)** — failures are on nested/complex brackets. Read tests 007-009 to see what's broken.
+4. **level_02_stitches (12/25)** — likely stitch-count math errors on yo/k2tog/ssk.
+
+DO NOT rewrite the whole knit.py. The 71/150 baseline is hard-won. Use `read` + targeted `edit` on specific functions. If you must rewrite a big function, copy the rest of the file verbatim.
 
 WORKFLOW DISCIPLINE
 - **First iteration**: ONLY call `read` on `solution/knit.py` to see the current 51/150 baseline. DO NOT overwrite or rewrite from scratch — improve incrementally.
