@@ -158,3 +158,9 @@
 [2026-05-22 09:49:31] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~23s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:49:37] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~16s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:49:39] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~15s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:49:40] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~14s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:49:41] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me look at the expected outputs directory:\n","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:49:41] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~13s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:49:49] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me look at the expected outputs for level 01:\n","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:49:49] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~5s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:49:50] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
