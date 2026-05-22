@@ -520,3 +520,4 @@
 [2026-05-22 10:29:59] DECISION {"iteration":5,"agentId":"root","summary":"Let me check what files exist in the solution directory. tools=[glob({\"pattern\":\"solution/*\"})]"}
 [2026-05-22 10:30:00] DECISION {"iteration":6,"agentId":"root","summary":"Let me read the current solution file. tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/solution/knit.py\"})]"}
 [2026-05-22 10:30:06] DECISION {"iteration":7,"agentId":"root","summary":"Let me load the knitting-stitch-math skill to understand the correct stitch math. tools=[load_skill({\"name\":\"knitting-stitch-math\"})]"}
+[2026-05-22 10:30:07] DECISION {"iteration":8,"agentId":"root","summary":"Let me load the knitting-error-format skill to understand the correct error format. tools=[load_skill({\"name\":\"knitting-error-format\"})]"}
