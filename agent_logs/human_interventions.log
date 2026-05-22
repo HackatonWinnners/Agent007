@@ -1093,3 +1093,4 @@
 [2026-05-22 05:12:02] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me read the expected JSON output for this test:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 05:12:05] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me look at the first test's expected output:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 05:12:09] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me check the expected output for this test:\n","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 05:12:11] INTERVENTION {"type":"auto-compaction","what":"squashed 4 old tool_results to 600 chars head+tail","why":"total content ~60051 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
