@@ -1,0 +1,210 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>NEEDLE AGENT</title>
+<style>
+@page { size: 1280px 720px; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Inter, sans-serif;
+  color: #e6edf3;
+  background: #0d1117;
+  -webkit-font-smoothing: antialiased;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  padding: 64px 80px;
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(88, 166, 255, 0.10), transparent 50%),
+    radial-gradient(circle at bottom left, rgba(255, 121, 198, 0.08), transparent 50%),
+    #0d1117;
+  border-left: 6px solid #58a6ff;
+}
+.slide:last-child { page-break-after: auto; }
+.slide.title {
+  justify-content: center;
+  text-align: center;
+  border-left: none;
+  background:
+    radial-gradient(circle at center, rgba(88, 166, 255, 0.22), transparent 60%),
+    #0d1117;
+}
+.slide.title h1 {
+  font-size: 96px;
+  letter-spacing: -2px;
+  margin: 0 0 16px;
+  background: linear-gradient(135deg, #58a6ff 0%, #ff79c6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.slide.title h2 {
+  font-size: 28px;
+  font-weight: 500;
+  color: #8b949e;
+  margin: 0 0 40px;
+  border: none;
+  padding: 0;
+}
+.slide.title p { font-size: 22px; color: #c9d1d9; margin: 12px 0; }
+.slide.title p em { color: #58a6ff; font-style: normal; }
+h1 {
+  font-size: 56px;
+  font-weight: 700;
+  color: #58a6ff;
+  margin: 0 0 24px;
+  letter-spacing: -0.5px;
+}
+h2 {
+  font-size: 40px;
+  font-weight: 600;
+  color: #c9d1d9;
+  margin: 0 0 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #30363d;
+}
+p { font-size: 22px; color: #c9d1d9; line-height: 1.5; margin: 8px 0; }
+ul { margin: 12px 0; padding-left: 28px; }
+li { font-size: 22px; color: #c9d1d9; line-height: 1.6; margin: 6px 0; }
+strong { color: #ff79c6; font-weight: 600; }
+em { color: #79c0ff; font-style: normal; }
+code {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  background: rgba(110, 118, 129, 0.4);
+  color: #79c0ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+pre {
+  background: #161b22;
+  border: 1px solid #30363d;
+  padding: 18px 22px;
+  border-radius: 10px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+pre code { background: none; color: #c9d1d9; padding: 0; font-size: 18px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 19px;
+}
+th, td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #30363d;
+}
+th { color: #58a6ff; font-weight: 600; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; }
+td { color: #c9d1d9; }
+tr:hover td { background: rgba(88, 166, 255, 0.05); }
+td:last-child, th:last-child { text-align: right; }
+a { color: #79c0ff; text-decoration: none; }
+.footer {
+  position: absolute;
+  bottom: 20px;
+  right: 80px;
+  font-size: 14px;
+  color: #484f58;
+}
+</style></head>
+<body>
+<section class="slide title"><h1>NEEDLE AGENT</h1>
+<h2>team HackatonWinners — @Lap @malachi @Konstantin @SteDP</h2>
+<p><strong>Score: 79/150 (52.7%) on the public test runner</strong></p>
+<p>*A self-restarting, watchdog-guarded, multi-tier coding agent that</p>
+<p>overnight ground a knitting compiler out of nothing.*</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 1/12</div></section><section class="slide"><h2>the rules of the game</h2>
+<ul>
+<li>Read a hidden spec at 20:00 Thursday</li>
+<li>Build the program it describes</li>
+<li>Submit by 12:00 Friday</li>
+<li>Use only <strong>free</strong> or <strong>local</strong> models — no paid Claude/GPT/Copilot</li>
+<li>Judges grade: 40% hidden tests + 20% public + 20% process + 10% self-tests + 10% talk</li>
+<li><em>The agent is the project. The program is just the battlefield.</em></li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 2/12</div></section><section class="slide"><h2>what we built (before reveal)</h2>
+<p>A TypeScript/Bun coding agent inspired by the leaked Claude Code source.</p>
+<ul>
+<li><strong>9 tools</strong>: <code>read</code>, <code>edit</code>, <code>write</code>, <code>bash</code>, <code>glob</code>, <code>grep</code>, <code>run_tests</code>, <code>load_skill</code>, <code>spawn_subagent</code>, <code>submit_done</code></li>
+<li><strong><code>edit</code> invariants from Claude Code</strong>: read-before-edit, exact-match, mtime guard</li>
+<li><strong>query/tool-call loop</strong> with cycle detection, auto-compaction, XML-tool-call recovery</li>
+<li><strong>Multi-tier model router</strong> with timeout, retry, 429 cooldown, fallback chain</li>
+<li><strong>Subagent system</strong> (planner / implementer / tester / failure_analyst / self_test_writer)</li>
+<li><strong>10 pre-written skills</strong> + 2 knitting-domain skills (<code>knitting-error-format</code>, <code>knitting-stitch-math</code>)</li>
+<li><strong>Pretty terminal UI</strong> with ANSI boxes (Claude Code vibe)</li>
+<li><strong>Watchdog</strong> that restarts agent on death and restores best <code>knit.py</code> on regression</li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 3/12</div></section><section class="slide"><h2>the reveal (20:00)</h2>
+<p><code>secret_spec/SECRET_SPEC.md</code> — <strong>Knitting Compiler</strong>, 927 lines</p>
+<pre><code class="lang-bash">python3 solution/knit.py compile &lt;file.knit&gt;</code></pre>
+<p>Parses a knitting DSL, validates, expands repeats, simulates stitch counts row by row, emits one deterministic JSON. 150 public tests across 8 levels of difficulty.</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 4/12</div></section><section class="slide"><h2>the journey</h2>
+<table>
+<thead><tr><th>time</th><th>score</th><th>what</th></tr></thead>
+<tbody>
+<tr><td>20:30</td><td>3/150</td><td>first scaffold via Featherless Qwen3-Coder-480B</td></tr>
+<tr><td>22:16</td><td>51/150</td><td>basic parsing + simulation</td></tr>
+<tr><td>00:00</td><td>76/150</td><td>cloud peak — then regressed by an over-eager edit</td></tr>
+<tr><td>03:00</td><td>71/150</td><td>local Ollama overnight grind</td></tr>
+<tr><td>09:54</td><td>77/150</td><td>Cerebras Cloud Qwen3-235B back in primary</td></tr>
+<tr><td>10:20</td><td><strong>79/150</strong></td><td>knitting-domain skills + planner workflow</td></tr>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 5/12</div></section><section class="slide"><h2>the model carousel</h2>
+<table>
+<thead><tr><th>Tried</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>DeepSeek V4-Pro (Featherless)</td><td><code>tools=false</code> — useless</td></tr>
+<tr><td>DeepSeek V3.2 (Featherless)</td><td>empty-args bug</td></tr>
+<tr><td>DeepSeek V3-0324 (Featherless)</td><td>markdown instead of native tools</td></tr>
+<tr><td>Qwen3-Coder-480B (Featherless)</td><td>slow + drops</td></tr>
+<tr><td>Qwen3-Coder-480B (NVIDIA NIM)</td><td>rate-limited fast</td></tr>
+<tr><td>Qwen3-235B (<strong>Cerebras free</strong>)</td><td>~2000 tok/s — primary</td></tr>
+<tr><td>Qwen3-Coder-30B UD-Q4_K_XL (local Ollama)</td><td>~80 tok/s — fallback</td></tr>
+<tr><td>Qwen3-Coder-30B IQ4_NL (local)</td><td>broken — invented tool names like <code>_write</code>, args like <code>"Eight"</code></td></tr>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 6/12</div></section><section class="slide"><h2>the overnight grind (in numbers)</h2>
+<table>
+<thead><tr><th>metric</th><th>count</th></tr></thead>
+<tbody>
+<tr><td>agent decisions logged</td><td><strong>906</strong></td></tr>
+<tr><td>commits since checkpoint</td><td><strong>1187</strong></td></tr>
+<tr><td>watchdog auto-restarts</td><td>23</td></tr>
+<tr><td>Cerebras-cooldown events</td><td>808</td></tr>
+<tr><td>thinking-without-action nudges</td><td>621</td></tr>
+<tr><td>context auto-compactions</td><td>199</td></tr>
+<tr><td>provider auto-fallbacks</td><td>66</td></tr>
+<tr><td>cycle prunes</td><td>11</td></tr>
+<tr><td>all-providers-down events</td><td>4</td></tr>
+<tr><td>run_tests invocations</td><td>42</td></tr>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 7/12</div></section><section class="slide"><h2>what worked</h2>
+<ul>
+<li><strong>Per-iteration auto-commit</strong> — <code>git log</code> is a play-by-play of the agent's thinking</li>
+<li><strong>Claude Code's edit invariants</strong> — read-before-edit + exact-match killed an entire class of silent overwrites</li>
+<li><strong>Cycle detector</strong> — 3+ identical tool calls in a 5-window → context prune</li>
+<li><strong>Auto-compaction</strong> — old tool results squashed to head+tail when context > 60 KB</li>
+<li><strong>3-tier model failover</strong> + 429 cooldown — kept the loop alive when Cerebras hit TPM</li>
+<li><strong>Watchdog with regression restore</strong> — pulled the best <code>knit.py</code> back from commit history when the model overwrote it with garbage</li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 8/12</div></section><section class="slide"><h2>what failed</h2>
+<ul>
+<li><strong>Free-tier rate limits</strong> stalled us 30 min at a time when all 3 cloud providers were 429</li>
+<li><strong>IQ4_NL quantization</strong> of Qwen3-Coder produced hallucinated tool calls — switched to <strong>UD-Q4_K_XL</strong></li>
+<li><strong>Ollama registry</strong> had EOF-on-manifest issues for <code>qwen3-coder:30b</code> — bypassed via <code>hf.co/unsloth/...:UD-Q4_K_XL</code></li>
+<li><strong><code>submit_done</code> premature calls</strong> at sub-150 scores → tightened prompt to require ≥ 140</li>
+<li><strong>Level_05 (single errors) only 2/30</strong> — knitting error JSON format was the biggest unsolved bucket</li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 9/12</div></section><section class="slide"><h2>what we'd improve given more time</h2>
+<ul>
+<li>A <strong><code>verify_score</code> tool</strong> that wraps <code>run_tests</code> and lets the loop refuse <code>submit_done</code> when score < 140</li>
+<li><strong>High-water-mark snapshots inside the agent</strong> (today we did it via an external watchdog)</li>
+<li><strong>Bigger local quant</strong> (Q5_K_M / Q6_K) on hardware with more RAM</li>
+<li><strong>Spec-derived self-tests</strong> generated proactively, not just at the end</li>
+<li><strong>Per-level subagents</strong> that own one category and don't context-pollute the rest</li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 10/12</div></section><section class="slide"><h2>the agent is the project</h2>
+<pre><code class="lang-">agent-readiness-1945  ← Thursday 19:45 checkpoint (set before the spec was even open)
+              │
+              └─ 1187 commits ─→ HEAD  (every iteration a commit, every commit a decision)</code></pre>
+<p>Public score is the battlefield score.</p>
+<p>The agent is what we built.</p>
+<p><strong><a href="https://github.com/HackatonWinnners/Agent007</strong>">https://github.com/HackatonWinnners/Agent007</strong></a></p><div class="footer">HackatonWinners · 42 Berlin × Needle · 11/12</div></section><section class="slide"><h2>thank you 🧶</h2><div class="footer">HackatonWinners · 42 Berlin × Needle · 12/12</div></section>
+</body></html>

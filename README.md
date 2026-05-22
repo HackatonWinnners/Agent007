@@ -19,6 +19,12 @@ either exhausts iterations or the score crosses 140/150.
 python3 solution/knit.py compile <input.knit>
 ```
 
+## Dependencies
+
+`solution/knit.py` uses only the Python 3 standard library — **no `requirements.txt`
+needed for the final program**. The agent (`agent/`) needs Bun + a few dev
+packages declared in `agent/package.json` (Vitest, fast-glob).
+
 ## Setup
 
 ```bash
