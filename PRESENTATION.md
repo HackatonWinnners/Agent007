@@ -34,6 +34,12 @@ A TypeScript/Bun coding agent inspired by the leaked Claude Code source.
 
 ---
 
+## how the agent runs
+
+*(diagram rendered from this slide title — see PDF)*
+
+---
+
 ## the reveal (20:00)
 
 `secret_spec/SECRET_SPEC.md` — **Knitting Compiler**, 927 lines
