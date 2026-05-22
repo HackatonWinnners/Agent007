@@ -12,96 +12,82 @@ class KnitCompiler:
         self.bind_off = False
         self.errors = []
         self.source_rows = []
-        self.expanded_rows = []
-
+        
     def parse_line(self, line):
         line = line.strip()
         if not line or line.startswith('#'):
             return None
         
-        # Pattern name
+        # Parse pattern name
         pattern_match = re.match(r'^pattern\s+(.+)$', line)
         if pattern_match:
-            self.pattern_name = pattern_match.group(1).strip().strip('"\'')
+            self.pattern_name = pattern_match.group(1).strip('"\'')
             return True
         
-        # Cast on
+        # Parse cast_on
         cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
         if cast_on_match:
             self.cast_on = int(cast_on_match.group(1))
             return True
         
-        # Bind off
+        # Parse bind_off
         bind_off_match = re.match(r'^bind_off$', line)
         if bind_off_match:
             self.bind_off = True
             return True
         
-        # Row definition
-        row_match = re.match(r'^row\s+(.+)$', line)
-        if row_match:
-            self.rows.append(row_match.group(1).strip())
+        # Parse rows
+        if line.startswith('row'):
+            # This is a row definition
+            self.rows.append(line)
             return True
         
         return False
-
-    def expand_row(self, row_str):
-        # Simple expansion - just return the row as-is for now
-        return row_str
-
-    def simulate_row(self, row_str, current_stitches):
-        # Simple simulation - just return the current stitch count
-        return current_stitches
-
-    def expand_rows(self):
-        # Expand rows with repeats
-        expanded = []
-        for i, row in enumerate(self.rows):
-            expanded.append(row)
-        return expanded
-
-    def simulate_stitches(self):
-        # Simple simulation
-        if not self.rows:
-            return [self.cast_on] if self.cast_on is not None else [0]
+    
+    def parse(self, lines):
+        for line in lines:
+            self.parse_line(line)
         
-        # For now, just return the cast_on count
-        return [self.cast_on] if self.cast_on is not None else [0]
-
+    def expand_rows(self):
+        # For now, just return the rows as-is
+        expanded_rows = []
+        for i, row in enumerate(self.rows):
+            expanded_rows.append({
+                'expanded_row_index': i,
+                'source_row': row,
+                'start_stitches': self.cast_on,
+                'end_stitches': self.cast_on,
+                'instructions': [row]
+            })
+        return expanded_rows
+    
+    def simulate(self):
+        # Simple simulation - just return the cast_on count
+        return self.cast_on
+    
     def compile(self, filename):
         try:
             with open(filename, 'r') as f:
                 lines = f.readlines()
             
-            for line in lines:
-                self.parse_line(line)
+            self.parse(lines)
             
-            # Expand rows
-            expanded_rows = self.expand_rows()
-            
-            # Simulate stitch counts
-            stitch_counts = self.simulate_stitches()
+            # Validate
+            if self.pattern_name is None:
+                self.errors.append('Missing pattern name')
+            if self.cast_on is None:
+                self.errors.append('Missing cast_on')
             
             # Build result
             result = {
-                "pattern_name": self.pattern_name,
-                "cast_on": self.cast_on,
-                "bind_off": self.bind_off,
-                "errors": self.errors,
-                "valid": len(self.errors) == 0,
-                "final_stitch_count": stitch_counts[-1] if stitch_counts else None,
-                "expanded_rows": []
+                'pattern_name': self.pattern_name,
+                'cast_on': self.cast_on,
+                'bind_off': self.bind_off,
+                'valid': len(self.errors) == 0,
+                'errors': self.errors,
+                'final_stitch_count': self.cast_on if self.cast_on is not None else 0,
+                'expanded_rows': self.expand_rows()
             }
-            
-            # Add expanded rows with proper structure
-            for i, row in enumerate(expanded_rows):
-                result["expanded_rows"].append({
-                    "source_row": row,
-                    "expanded_row_index": i,
-                    "start_stitches": self.cast_on if i == 0 else stitch_counts[i-1],
-                    "end_stitches": stitch_counts[i] if i < len(stitch_counts) else self.cast_on,
-                    "instructions": [row]
-                })
             
             print(json.dumps(result))
             
