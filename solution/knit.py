@@ -17,14 +17,8 @@ class KnitCompiler:
         self.cast_on_line = None
         self.pattern_line = None
         self.bind_off_line = None
-        self.cast_on_after_row = False
-        self.bind_off_after_row = False
-        self.row_count = 0
         self.row_numbers = set()
-        self.duplicate_rows = set()
-        self.out_of_order_rows = set()
         self.row_repeats = []
-        self.bind_off_position = None
         
     def add_error(self, code, message, line=None, row=None):
         error = {
@@ -102,23 +96,13 @@ class KnitCompiler:
                 # Check for duplicate row numbers
                 if row_num in self.row_numbers:
                     self.add_error("DUPLICATE_ROW", f"Duplicate row number {row_num}.", line_num, row_num)
-                    self.duplicate_rows.add(row_num)
-                elif row_num in self.source_rows:
-                    # This is a row that was already processed but not in current rows
-                    self.add_error("DUPLICATE_ROW", f"Duplicate row number {row_num}.", line_num, row_num)
-                    self.duplicate_rows.add(row_num)
                 else:
-                    # Check for out of order rows
-                    if self.row_numbers and row_num < max(self.row_numbers):
-                        self.add_error("OUT_OF_ORDER_ROW", f"Row {row_num} is out of order.", line_num, row_num)
-                        self.out_of_order_rows.add(row_num)
-                    
-                self.source_rows[row_num] = {
-                    "line": line_num,
-                    "instructions": instructions,
-                    "row_num": row_num
-                }
-                self.row_numbers.add(row_num)
+                    self.source_rows[row_num] = {
+                        "line": line_num,
+                        "instructions": instructions,
+                        "row_num": row_num
+                    }
+                    self.row_numbers.add(row_num)
                 
             except ValueError:
                 self.add_error("MALFORMED_ROW", "Invalid row number.", line_num, None)
@@ -168,8 +152,7 @@ class KnitCompiler:
         
         # Add original rows
         for row_num in sorted(self.source_rows.keys()):
-            if row_num not in self.duplicate_rows and row_num not in self.out_of_order_rows:
-                expanded_sequence.append(row_num)
+            expanded_sequence.append(row_num)
         
         # Add repeated rows
         for repeat in self.row_repeats:
@@ -180,7 +163,7 @@ class KnitCompiler:
             # Add the range count times
             for _ in range(count):
                 for i in range(start, end + 1):
-                    if i in self.source_rows and i not in self.duplicate_rows and i not in self.out_of_order_rows:
+                    if i in self.source_rows:
                         expanded_sequence.append(i)
         
         return expanded_sequence
