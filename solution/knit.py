@@ -20,6 +20,10 @@ def parse_stitch_operation(op):
     if op in ['yo', 'k2tog', 'ssk', 'inc', 'dec']:
         return {'stitch': op, 'count': 1}
     
+    # Handle k, p, etc. without count
+    if op in ['k', 'p']:
+        return {'stitch': op, 'count': 1}
+    
     return None
 
 def calculate_stitch_change(stitch_op):
@@ -27,30 +31,57 @@ def calculate_stitch_change(stitch_op):
     stitch_type = stitch_op['stitch']
     count = stitch_op['count']
     
-    # For counted stitches, they consume count stitches and produce count stitches
+    # For counted stitches (k, p) - they consume count stitches and produce count stitches
     # So net change is 0
-    if stitch_type in ['k', 'p', 'yo', 'ssk', 'inc']:
+    if stitch_type in ['k', 'p']:
         return 0
     
-    # For decrease stitches, they consume 2 stitches and produce 1 stitch
+    # For single stitches that don't change count
+    if stitch_type in ['yo', 'ssk', 'inc']:
+        return 0
+    
+    # For decrease stitches - they consume 2 stitches and produce 1 stitch
     # So net change is -1
     if stitch_type in ['k2tog', 'dec']:
         return -1
     
     return 0
 
-def simulate_stitch_count(instructions, start_stitches):
-    """Simulate stitch count changes for a row"""
-    current_stitches = start_stitches
+def expand_brackets(instructions):
+    """Expand bracketed repeats in instructions"""
+    # Find bracketed patterns
+    expanded = []
+    i = 0
+    while i < len(instructions):
+        instr = instructions[i]
+        
+        # Check for bracketed pattern
+        if instr.startswith('[') and instr.endswith(']'):
+            # Extract the pattern and repeat count
+            # Format: [k1, p1] x2
+            bracket_content = instr[1:-1].strip()
+            
+            # Find the repeat part
+            repeat_match = re.search(r'x(\d+)$', bracket_content)
+            if repeat_match:
+                repeat_count = int(repeat_match.group(1))
+                pattern_content = bracket_content[:repeat_match.start()].strip()
+                
+                # Split the pattern into individual instructions
+                pattern_parts = [part.strip() for part in pattern_content.split(',') if part.strip()]
+                
+                # Add the pattern repeated times
+                for _ in range(repeat_count):
+                    expanded.extend(pattern_parts)
+            else:
+                # No repeat count found, just add as-is
+                expanded.append(instr)
+        else:
+            expanded.append(instr)
+        
+        i += 1
     
-    for instr in instructions:
-        parsed = parse_stitch_operation(instr)
-        if parsed:
-            # Calculate net change
-            change = calculate_stitch_change(parsed)
-            current_stitches += change
-    
-    return current_stitches
+    return expanded
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -130,9 +161,12 @@ def main():
                 })
                 continue
             
+            # Expand brackets
+            expanded_parts = expand_brackets(instr_parts)
+            
             # Parse each instruction
             parsed_instructions = []
-            for instr in instr_parts:
+            for instr in expanded_parts:
                 parsed = parse_stitch_operation(instr)
                 if parsed is None:
                     errors.append({
