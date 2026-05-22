@@ -1241,3 +1241,4 @@
 [2026-05-22 10:45:56] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me check the expected output file:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:45:56] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~53s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:45:58] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:45:58] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~52s left after recent 429","filesAffected":[],"touchedFinalCode":false}
