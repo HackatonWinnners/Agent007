@@ -196,7 +196,7 @@ class KnittingCompiler:
         self.parse_file(file_path)
         
         # Check for required fields
-        if not self.pattern_name:
+        if self.pattern_name is None:
             self.errors.append({
                 "type": "error",
                 "code": "MISSING_PATTERN_NAME",
