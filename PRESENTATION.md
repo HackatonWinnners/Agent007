@@ -2,7 +2,7 @@
 
 ## team HackatonWinners — @Lap @malachi @Konstantin @SteDP
 
-**Score: 79/150 (52.7%) on the public test runner**
+**Public: 79/150 (52.7%) · Hidden: 31/100 (31%)**
 *A self-restarting, watchdog-guarded, multi-tier coding agent that
 overnight ground a knitting compiler out of nothing.*
 
@@ -102,6 +102,24 @@ Parses a knitting DSL, validates, expands repeats, simulates stitch counts row b
 
 ---
 
+## hidden tests — post-mortem (31/100)
+
+| hidden category | score | diagnosis |
+|---|---|---|
+| boundary_stress_valid | **14/15** | large patterns work, math holds at scale |
+| cli_behavior | **4/5** | CLI contract solid |
+| schema_exactness_valid_outputs | 7/15 | half — JSON field shape mismatches |
+| compositional_valid_patterns | 6/30 | **systematic off-by-one in stitch math** — 24/24 failures show `expected N, got N+1` |
+| edge_policy | **0/10** | not detecting invalid → exit 0 when judge expects 1 |
+| interaction_effect_invalid_patterns | **0/25** | same root cause as public level_05/06 — error emission shape never landed |
+
+**Root causes (identifiable, not random):**
+- One stitch op (likely `yo` / `m1` / `kfb`) produces +1 too many stitches → 24 free points
+- Whole error-emission pipeline never converged on the canonical `{type, code, line, row}` schema → 35 points trapped
+- One more agent grind window aimed at level_05/06 would have closed both gaps
+
+---
+
 ## what failed
 
 - **Free-tier rate limits** stalled us 30 min at a time when all 3 cloud providers were 429
@@ -119,6 +137,7 @@ Parses a knitting DSL, validates, expands repeats, simulates stitch counts row b
 - **Bigger local quant** (Q5_K_M / Q6_K) on hardware with more RAM
 - **Spec-derived self-tests** generated proactively, not just at the end
 - **Per-level subagents** that own one category and don't context-pollute the rest
+- **Hidden-test post-mortem loop:** if we'd had a second 4-hour window we'd point a fresh agent at the off-by-one stitch math (worth +24 hidden points) and the canonical error schema (worth +35 hidden points). The failures are systematic — not noise — and the agent is already wired to grind specific bugs.
 
 ---
 

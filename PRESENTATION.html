@@ -118,9 +118,9 @@ a { color: #79c0ff; text-decoration: none; }
 <body>
 <section class="slide title"><h1>NEEDLE AGENT</h1>
 <h2>team HackatonWinners — @Lap @malachi @Konstantin @SteDP</h2>
-<p><strong>Score: 79/150 (52.7%) on the public test runner</strong></p>
+<p><strong>Public: 79/150 (52.7%) · Hidden: 31/100 (31%)</strong></p>
 <p>*A self-restarting, watchdog-guarded, multi-tier coding agent that</p>
-<p>overnight ground a knitting compiler out of nothing.*</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 1/12</div></section><section class="slide"><h2>the rules of the game</h2>
+<p>overnight ground a knitting compiler out of nothing.*</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 1/13</div></section><section class="slide"><h2>the rules of the game</h2>
 <ul>
 <li>Read a hidden spec at 20:00 Thursday</li>
 <li>Build the program it describes</li>
@@ -128,7 +128,7 @@ a { color: #79c0ff; text-decoration: none; }
 <li>Use only <strong>free</strong> or <strong>local</strong> models — no paid Claude/GPT/Copilot</li>
 <li>Judges grade: 40% hidden tests + 20% public + 20% process + 10% self-tests + 10% talk</li>
 <li><em>The agent is the project. The program is just the battlefield.</em></li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 2/12</div></section><section class="slide"><h2>what we built (before reveal)</h2>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 2/13</div></section><section class="slide"><h2>what we built (before reveal)</h2>
 <p>A TypeScript/Bun coding agent inspired by the leaked Claude Code source.</p>
 <ul>
 <li><strong>9 tools</strong>: <code>read</code>, <code>edit</code>, <code>write</code>, <code>bash</code>, <code>glob</code>, <code>grep</code>, <code>run_tests</code>, <code>load_skill</code>, <code>spawn_subagent</code>, <code>submit_done</code></li>
@@ -139,10 +139,10 @@ a { color: #79c0ff; text-decoration: none; }
 <li><strong>10 pre-written skills</strong> + 2 knitting-domain skills (<code>knitting-error-format</code>, <code>knitting-stitch-math</code>)</li>
 <li><strong>Pretty terminal UI</strong> with ANSI boxes (Claude Code vibe)</li>
 <li><strong>Watchdog</strong> that restarts agent on death and restores best <code>knit.py</code> on regression</li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 3/12</div></section><section class="slide"><h2>the reveal (20:00)</h2>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 3/13</div></section><section class="slide"><h2>the reveal (20:00)</h2>
 <p><code>secret_spec/SECRET_SPEC.md</code> — <strong>Knitting Compiler</strong>, 927 lines</p>
 <pre><code class="lang-bash">python3 solution/knit.py compile &lt;file.knit&gt;</code></pre>
-<p>Parses a knitting DSL, validates, expands repeats, simulates stitch counts row by row, emits one deterministic JSON. 150 public tests across 8 levels of difficulty.</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 4/12</div></section><section class="slide"><h2>the journey</h2>
+<p>Parses a knitting DSL, validates, expands repeats, simulates stitch counts row by row, emits one deterministic JSON. 150 public tests across 8 levels of difficulty.</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 4/13</div></section><section class="slide"><h2>the journey</h2>
 <table>
 <thead><tr><th>time</th><th>score</th><th>what</th></tr></thead>
 <tbody>
@@ -152,7 +152,7 @@ a { color: #79c0ff; text-decoration: none; }
 <tr><td>03:00</td><td>71/150</td><td>local Ollama overnight grind</td></tr>
 <tr><td>09:54</td><td>77/150</td><td>Cerebras Cloud Qwen3-235B back in primary</td></tr>
 <tr><td>10:20</td><td><strong>79/150</strong></td><td>knitting-domain skills + planner workflow</td></tr>
-</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 5/12</div></section><section class="slide"><h2>the model carousel</h2>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 5/13</div></section><section class="slide"><h2>the model carousel</h2>
 <table>
 <thead><tr><th>Tried</th><th>Verdict</th></tr></thead>
 <tbody>
@@ -164,7 +164,7 @@ a { color: #79c0ff; text-decoration: none; }
 <tr><td>Qwen3-235B (<strong>Cerebras free</strong>)</td><td>~2000 tok/s — primary</td></tr>
 <tr><td>Qwen3-Coder-30B UD-Q4_K_XL (local Ollama)</td><td>~80 tok/s — fallback</td></tr>
 <tr><td>Qwen3-Coder-30B IQ4_NL (local)</td><td>broken — invented tool names like <code>_write</code>, args like <code>"Eight"</code></td></tr>
-</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 6/12</div></section><section class="slide"><h2>the overnight grind (in numbers)</h2>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 6/13</div></section><section class="slide"><h2>the overnight grind (in numbers)</h2>
 <table>
 <thead><tr><th>metric</th><th>count</th></tr></thead>
 <tbody>
@@ -178,7 +178,7 @@ a { color: #79c0ff; text-decoration: none; }
 <tr><td>cycle prunes</td><td>11</td></tr>
 <tr><td>all-providers-down events</td><td>4</td></tr>
 <tr><td>run_tests invocations</td><td>42</td></tr>
-</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 7/12</div></section><section class="slide"><h2>what worked</h2>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 7/13</div></section><section class="slide"><h2>what worked</h2>
 <ul>
 <li><strong>Per-iteration auto-commit</strong> — <code>git log</code> is a play-by-play of the agent's thinking</li>
 <li><strong>Claude Code's edit invariants</strong> — read-before-edit + exact-match killed an entire class of silent overwrites</li>
@@ -186,25 +186,42 @@ a { color: #79c0ff; text-decoration: none; }
 <li><strong>Auto-compaction</strong> — old tool results squashed to head+tail when context > 60 KB</li>
 <li><strong>3-tier model failover</strong> + 429 cooldown — kept the loop alive when Cerebras hit TPM</li>
 <li><strong>Watchdog with regression restore</strong> — pulled the best <code>knit.py</code> back from commit history when the model overwrote it with garbage</li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 8/12</div></section><section class="slide"><h2>what failed</h2>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 8/13</div></section><section class="slide"><h2>hidden tests — post-mortem (31/100)</h2>
+<table>
+<thead><tr><th>hidden category</th><th>score</th><th>diagnosis</th></tr></thead>
+<tbody>
+<tr><td>boundary_stress_valid</td><td><strong>14/15</strong></td><td>large patterns work, math holds at scale</td></tr>
+<tr><td>cli_behavior</td><td><strong>4/5</strong></td><td>CLI contract solid</td></tr>
+<tr><td>schema_exactness_valid_outputs</td><td>7/15</td><td>half — JSON field shape mismatches</td></tr>
+<tr><td>compositional_valid_patterns</td><td>6/30</td><td><strong>systematic off-by-one in stitch math</strong> — 24/24 failures show <code>expected N, got N+1</code></td></tr>
+<tr><td>edge_policy</td><td><strong>0/10</strong></td><td>not detecting invalid → exit 0 when judge expects 1</td></tr>
+<tr><td>interaction_effect_invalid_patterns</td><td><strong>0/25</strong></td><td>same root cause as public level_05/06 — error emission shape never landed</td></tr>
+</tbody></table>
+<p><strong>Root causes (identifiable, not random):</strong></p>
+<ul>
+<li>One stitch op (likely <code>yo</code> / <code>m1</code> / <code>kfb</code>) produces +1 too many stitches → 24 free points</li>
+<li>Whole error-emission pipeline never converged on the canonical <code>{type, code, line, row}</code> schema → 35 points trapped</li>
+<li>One more agent grind window aimed at level_05/06 would have closed both gaps</li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 9/13</div></section><section class="slide"><h2>what failed</h2>
 <ul>
 <li><strong>Free-tier rate limits</strong> stalled us 30 min at a time when all 3 cloud providers were 429</li>
 <li><strong>IQ4_NL quantization</strong> of Qwen3-Coder produced hallucinated tool calls — switched to <strong>UD-Q4_K_XL</strong></li>
 <li><strong>Ollama registry</strong> had EOF-on-manifest issues for <code>qwen3-coder:30b</code> — bypassed via <code>hf.co/unsloth/...:UD-Q4_K_XL</code></li>
 <li><strong><code>submit_done</code> premature calls</strong> at sub-150 scores → tightened prompt to require ≥ 140</li>
 <li><strong>Level_05 (single errors) only 2/30</strong> — knitting error JSON format was the biggest unsolved bucket</li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 9/12</div></section><section class="slide"><h2>what we'd improve given more time</h2>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 10/13</div></section><section class="slide"><h2>what we'd improve given more time</h2>
 <ul>
 <li>A <strong><code>verify_score</code> tool</strong> that wraps <code>run_tests</code> and lets the loop refuse <code>submit_done</code> when score < 140</li>
 <li><strong>High-water-mark snapshots inside the agent</strong> (today we did it via an external watchdog)</li>
 <li><strong>Bigger local quant</strong> (Q5_K_M / Q6_K) on hardware with more RAM</li>
 <li><strong>Spec-derived self-tests</strong> generated proactively, not just at the end</li>
 <li><strong>Per-level subagents</strong> that own one category and don't context-pollute the rest</li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 10/12</div></section><section class="slide"><h2>the agent is the project</h2>
+<li><strong>Hidden-test post-mortem loop:</strong> if we'd had a second 4-hour window we'd point a fresh agent at the off-by-one stitch math (worth +24 hidden points) and the canonical error schema (worth +35 hidden points). The failures are systematic — not noise — and the agent is already wired to grind specific bugs.</li>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 11/13</div></section><section class="slide"><h2>the agent is the project</h2>
 <pre><code class="lang-">agent-readiness-1945  ← Thursday 19:45 checkpoint (set before the spec was even open)
               │
               └─ 1187 commits ─→ HEAD  (every iteration a commit, every commit a decision)</code></pre>
 <p>Public score is the battlefield score.</p>
 <p>The agent is what we built.</p>
-<p><strong><a href="https://github.com/HackatonWinnners/Agent007</strong>">https://github.com/HackatonWinnners/Agent007</strong></a></p><div class="footer">HackatonWinners · 42 Berlin × Needle · 11/12</div></section><section class="slide"><h2>thank you 🧶</h2><div class="footer">HackatonWinners · 42 Berlin × Needle · 12/12</div></section>
+<p><strong><a href="https://github.com/HackatonWinnners/Agent007</strong>">https://github.com/HackatonWinnners/Agent007</strong></a></p><div class="footer">HackatonWinners · 42 Berlin × Needle · 12/13</div></section><section class="slide"><h2>thank you 🧶</h2><div class="footer">HackatonWinners · 42 Berlin × Needle · 13/13</div></section>
 </body></html>
