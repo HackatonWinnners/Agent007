@@ -14,48 +14,72 @@ class KnittingCompiler:
         self.repeats = []
         self.errors = []
         
-    def add_error(self, message, line=None, row=None, code=None):
-        error = {
-            "type": "error",
-            "code": code or "UNKNOWN_ERROR",
-            "message": message,
-            "line": line,
-            "row": row
-        }
-        self.errors.append(error)
+    def parse_file(self, file_path):
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
         
-    def parse_line(self, line, line_num):
-        line = line.strip()
-        if not line:
-            return
-        
-        if line.startswith("pattern "):
-            self.pattern_name = line[8:].strip('"')
-        elif line.startswith("cast_on "):
+        for i, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
             try:
-                self.cast_on = int(line[8:])
-            except ValueError:
-                self.add_error("Invalid cast_on value", line=line_num)
-        elif line.startswith("bind_off"):
-            self.bind_off = True
-        elif line.startswith("row "):
-            # Extract row number and instruction
-            row_match = re.match(r"row ([0-9]+):(.*)", line)
-            if row_match:
-                row_num = int(row_match.group(1))
-                instruction = row_match.group(2).strip()
-                self.rows.append((row_num, instruction))
-            else:
-                self.add_error("Invalid row format", line=line_num)
-        elif line.startswith("repeat "):
-            # Handle repeat blocks
-            repeat_match = re.match(r"repeat ([0-9]+) times:(.*)", line)
-            if repeat_match:
-                times = int(repeat_match.group(1))
-                instruction = repeat_match.group(2).strip()
-                self.repeats.append((times, instruction))
-            else:
-                self.add_error("Invalid repeat format", line=line_num)
+                if line.startswith('pattern "'):
+                    self.pattern_name = line.split('"')[1]
+                elif line.startswith('cast_on '):
+                    self.cast_on = int(line.split(' ')[1])
+                elif line.startswith('bind_off'):
+                    self.bind_off = True
+                elif line.startswith('row '):
+                    # Parse row instruction
+                    parts = line.split(': ', 1)
+                    if len(parts) != 2:
+                        self.errors.append({
+                            "type": "error",
+                            "code": "INVALID_ROW_SYNTAX",
+                            "message": "Invalid row syntax",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                    
+                    row_number = int(parts[0].split(' ')[1])
+                    instruction = parts[1]
+                    self.rows.append((row_number, instruction))
+                elif line.startswith('repeat rows '):
+                    # Parse repeat instruction
+                    parts = line.split(' ')
+                    if len(parts) < 4:
+                        self.errors.append({
+                            "type": "error",
+                            "code": "INVALID_REPEAT_SYNTAX",
+                            "message": "Invalid repeat syntax",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                    
+                    repeat_def = parts[2]
+                    repeat_count = int(parts[3][1:])  # Remove 'x' prefix
+                    
+                    if '-' in repeat_def:
+                        start_row, end_row = map(int, repeat_def.split('-'))
+                    else:
+                        start_row = end_row = int(repeat_def)
+                    
+                    self.repeats.append({
+                        "start_row": start_row,
+                        "end_row": end_row,
+                        "count": repeat_count
+                    })
+            except Exception as e:
+                self.errors.append({
+                    "type": "error",
+                    "code": "PARSE_ERROR",
+                    "message": f"Error parsing line {i}: {str(e)}",
+                    "line": i,
+                    "row": None
+                })
         
     def expand_brackets(self, instruction):
         """Expand bracketed repeats in instruction"""
@@ -68,12 +92,13 @@ class KnittingCompiler:
             if not match:
                 break
             
-            # Extract content and repeat count
-            content = match.group(1)
+            bracket_content = match.group(1)
             repeat_count = int(match.group(2))
             
-            # Split content by comma and repeat
-            operations = [op.strip() for op in content.split(',')]
+            # Split bracket content by commas
+            operations = [op.strip() for op in bracket_content.split(',')]
+            
+            # Create repeated content
             repeated_content = ','.join(operations * repeat_count)
             
             # Replace in expanded string
@@ -84,86 +109,162 @@ class KnittingCompiler:
     def parse_instruction(self, instruction):
         """Parse instruction into stitch operations"""
         # First expand brackets
-        expanded = self.expand_brackets(instruction)
+        expanded_instruction = self.expand_brackets(instruction)
         
-        # Split by comma to get individual operations
-        operations = [op.strip() for op in expanded.split(',')]
+        # Split by commas
+        operations = [op.strip() for op in expanded_instruction.split(',')]
+        parsed_ops = []
         
-        result = []
         for op in operations:
             if not op:
                 continue
             
-            # Parse stitch type and count
-            match = re.match(r'([a-zA-Z]+)([0-9]+)?', op)
-            if match:
-                stitch_type = match.group(1)
-                count = int(match.group(2)) if match.group(2) else 1
-                result.append({"stitch": stitch_type, "count": count})
+            # Match stitch type and count
+            match = re.match(r'([a-zA-Z]+)(\d*)', op)
+            if not match:
+                self.errors.append({
+                    "type": "error",
+                    "code": "INVALID_STITCH_SYNTAX",
+                    "message": f"Invalid stitch syntax: {op}",
+                    "line": None,
+                    "row": None
+                })
+                continue
+            
+            stitch_type = match.group(1)
+            count = int(match.group(2)) if match.group(2) else 1
+            
+            parsed_ops.append({
+                "stitch": stitch_type,
+                "count": count
+            })
+        
+        return parsed_ops
+    
+    def simulate_row(self, instruction, start_stitches):
+        """Simulate a row and return the end stitch count"""
+        parsed_ops = self.parse_instruction(instruction)
+        current_stitches = start_stitches
+        
+        for op in parsed_ops:
+            stitch_type = op["stitch"]
+            count = op["count"]
+            
+            # Calculate stitch count changes
+            if stitch_type in ["k2tog", "s2k", "sk", "sl"]:
+                # These decrease stitch count by 1 per occurrence
+                current_stitches -= count
+            elif stitch_type in ["yo", "inc"]:
+                # These increase stitch count by 1 per occurrence
+                current_stitches += count
+            elif stitch_type in ["k", "p", "m1", "m1l", "m1r"]:
+                # These don't change stitch count
+                pass
             else:
-                self.add_error(f"Invalid stitch operation: {op}", line=0)
+                # For unknown stitch types, we'll assume they don't change stitch count
+                pass
         
-        return result
+        return current_stitches
     
-    def simulate_row(self, row_num, instruction):
-        """Simulate a row and return stitch count changes"""
-        operations = self.parse_instruction(instruction)
+    def expand_rows(self):
+        """Expand rows with repeats"""
+        # Create a list of all rows to process
+        all_rows = self.rows.copy()
         
-        # For now, just return the operations
-        # In real knitting, most stitches don't change stitch count
-        # Only specific stitches like k2tog, s2k, etc. change stitch count
-        start_stitches = self.cast_on if row_num == 1 else self.cast_on  # Simplified
-        end_stitches = self.cast_on  # Simplified
+        # Handle repeats
+        for repeat in self.repeats:
+            start_row = repeat["start_row"]
+            end_row = repeat["end_row"]
+            count = repeat["count"]
+            
+            # Find rows to repeat
+            rows_to_repeat = []
+            for row_num, instruction in self.rows:
+                if start_row <= row_num <= end_row:
+                    rows_to_repeat.append((row_num, instruction))
+            
+            # Add repeated rows
+            for _ in range(count):
+                for row_num, instruction in rows_to_repeat:
+                    all_rows.append((row_num, instruction))
         
-        return {
-            "source_row": row_num,
-            "expanded_row_index": row_num,
-            "start_stitches": start_stitches,
-            "end_stitches": end_stitches,
-            "instructions": operations
-        }
+        return all_rows
     
-    def compile(self, input_file):
-        """Compile a knitting pattern file"""
-        self.errors = []
+    def compile(self, file_path):
+        # Parse the file
+        self.parse_file(file_path)
         
-        try:
-            with open(input_file, 'r') as f:
-                lines = f.readlines()
-        except FileNotFoundError:
-            self.add_error("File not found", line=None)
-            return self.get_result()
+        # Check for required fields
+        if self.pattern_name is None:
+            self.errors.append({
+                "type": "error",
+                "code": "MISSING_PATTERN_NAME",
+                "message": "Missing pattern name",
+                "line": None,
+                "row": None
+            })
         
-        # Parse lines
-        for i, line in enumerate(lines, 1):
-            self.parse_line(line.strip(), i)
-        
-        # Validate required fields
-        if not self.pattern_name:
-            self.add_error("Missing pattern name", line=None)
         if self.cast_on is None:
-            self.add_error("Missing cast_on", line=None)
+            self.errors.append({
+                "type": "error",
+                "code": "MISSING_CAST_ON",
+                "message": "Missing cast_on value",
+                "line": None,
+                "row": None
+            })
         
-        # Process rows
-        expanded_rows = []
-        for row_num, instruction in self.rows:
-            row_data = self.simulate_row(row_num, instruction)
-            expanded_rows.append(row_data)
+        # If there are errors, return early
+        if self.errors:
+            return self.get_error_result()
         
-        return self.get_result(expanded_rows)
-    
-    def get_result(self, expanded_rows=None):
-        """Get final result"""
-        if expanded_rows is None:
-            expanded_rows = []
+        # Expand rows
+        expanded_rows = self.expand_rows()
+        
+        # Simulate rows
+        current_stitches = self.cast_on
+        result_rows = []
+        expanded_row_index = 1
+        
+        for row_num, instruction in expanded_rows:
+            start_stitches = current_stitches
+            
+            # Simulate the row
+            end_stitches = self.simulate_row(instruction, start_stitches)
+            
+            # Parse instructions for detailed info
+            parsed_instructions = self.parse_instruction(instruction)
+            
+            result_rows.append({
+                "source_row": row_num,
+                "expanded_row_index": expanded_row_index,
+                "start_stitches": start_stitches,
+                "end_stitches": end_stitches,
+                "instructions": parsed_instructions
+            })
+            
+            current_stitches = end_stitches
+            expanded_row_index += 1
+        
+        final_stitch_count = current_stitches
         
         return {
             "pattern_name": self.pattern_name,
             "cast_on": self.cast_on,
-            "valid": len(self.errors) == 0,
+            "valid": True,
+            "errors": [],
+            "expanded_rows": result_rows,
+            "final_stitch_count": final_stitch_count,
+            "bind_off": self.bind_off
+        }
+    
+    def get_error_result(self):
+        return {
+            "pattern_name": self.pattern_name,
+            "cast_on": self.cast_on,
+            "valid": False,
             "errors": self.errors,
-            "expanded_rows": expanded_rows,
-            "final_stitch_count": self.cast_on,
+            "expanded_rows": [],
+            "final_stitch_count": None,
             "bind_off": self.bind_off
         }
 
@@ -174,6 +275,10 @@ def main():
         sys.exit(2)
     
     input_file = sys.argv[2]
+    
+    if not os.path.exists(input_file):
+        print(f"Error: File {input_file} not found", file=sys.stderr)
+        sys.exit(2)
     
     compiler = KnittingCompiler()
     result = compiler.compile(input_file)
