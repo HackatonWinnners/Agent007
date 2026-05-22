@@ -4,7 +4,6 @@ import sys
 import json
 import re
 
-
 class KnitCompiler:
     def __init__(self):
         self.pattern_name = None
@@ -12,454 +11,359 @@ class KnitCompiler:
         self.rows = []
         self.bind_off = False
         self.errors = []
-        self.source_rows = {}
+        self.source_rows = []
         self.expanded_rows = []
-        self.final_stitch_count = None
-        self.cast_on_line = None
-        self.rows_after_cast_on = False
-        self.bind_off_line = None
+        self.line_number = 0
         self.row_numbers = set()
-        self.row_repeat_statements = []
-        self.source_row_order = []
-        self.valid = True
+        self.row_order = []
+        self.cast_on_line = None
+        self.pattern_line = None
+        self.bind_off_line = None
+        self.cast_on_after_row = False
+        self.cast_on_valid = False
+        self.pattern_valid = False
+        self.bind_off_valid = False
+        self.bind_off_after_row = False
         
-    def parse_file(self, file_path):
-        with open(file_path, 'r') as f:
-            lines = [line.rstrip('\n') for line in f.readlines()]
+    def add_error(self, code, message, line=None, row=None):
+        error = {
+            "type": "error",
+            "code": code,
+            "message": message,
+            "line": line,
+            "row": row
+        }
+        self.errors.append(error)
         
-        # Parse lines
-        for i, line in enumerate(lines, 1):
-            # Remove comments
-            if '#' in line:
-                # Handle comments properly - need to track quotes
-                line_no_comment = self.remove_comments(line)
-                if line_no_comment is None:
-                    # Malformed line with unclosed quote
-                    self.errors.append({
-                        "type": "error",
-                        "code": "MALFORMED_PATTERN",
-                        "message": "Malformed pattern declaration.",
-                        "line": i,
-                        "row": None
-                    })
-                    continue
-                line = line_no_comment
+    def parse_line(self, line, line_num):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            return
+        
+        # Remove comment
+        if '#' in line:
+            comment_start = line.find('#')
+            # Check if quote is open
+            quote_count = line[:comment_start].count('"')
+            if quote_count % 2 == 0:
+                line = line[:comment_start].rstrip()
             
-            if not line.strip():
+        if not line:
+            return
+        
+        # Parse pattern
+        if line.startswith('pattern '):
+            self.parse_pattern(line, line_num)
+            return
+        
+        # Parse cast_on
+        if line.startswith('cast_on '):
+            self.parse_cast_on(line, line_num)
+            return
+        
+        # Parse row
+        if line.startswith('row '):
+            self.parse_row(line, line_num)
+            return
+        
+        # Parse repeat
+        if line.startswith('repeat '):
+            self.parse_repeat(line, line_num)
+            return
+        
+        # Parse bind_off
+        if line == 'bind_off':
+            self.parse_bind_off(line, line_num)
+            return
+        
+        # Unknown statement
+        self.add_error('UNKNOWN_STATEMENT', 'Unknown statement.', line_num, None)
+        
+    def parse_pattern(self, line, line_num):
+        pattern_match = re.match(r'^pattern "(.*)"$', line)
+        if not pattern_match:
+            self.add_error('MALFORMED_PATTERN', 'Malformed pattern declaration.', line_num, None)
+            return
+        
+        if self.pattern_valid:
+            self.add_error('DUPLICATE_PATTERN', 'Duplicate pattern declaration.', line_num, None)
+            return
+        
+        self.pattern_name = pattern_match.group(1)
+        self.pattern_valid = True
+        self.pattern_line = line_num
+        
+    def parse_cast_on(self, line, line_num):
+        cast_on_match = re.match(r'^cast_on ([0-9]+)$', line)
+        if not cast_on_match:
+            self.add_error('MALFORMED_CAST_ON', 'Malformed cast-on declaration.', line_num, None)
+            return
+        
+        cast_on_value = int(cast_on_match.group(1))
+        if cast_on_value <= 0:
+            self.add_error('MALFORMED_CAST_ON', 'Malformed cast-on declaration.', line_num, None)
+            return
+        
+        if self.cast_on_valid:
+            self.add_error('DUPLICATE_CAST_ON', 'Duplicate cast-on declaration.', line_num, None)
+            return
+        
+        self.cast_on = cast_on_value
+        self.cast_on_valid = True
+        self.cast_on_line = line_num
+        
+    def parse_row(self, line, line_num):
+        # Check if cast_on comes before rows
+        if not self.cast_on_valid and not self.cast_on_after_row:
+            self.cast_on_after_row = True
+            
+        # Parse row header
+        row_match = re.match(r'^row ([0-9]+):(.*)$', line)
+        if not row_match:
+            self.add_error('MALFORMED_ROW', 'Malformed row declaration.', line_num, None)
+            return
+        
+        row_num = int(row_match.group(1))
+        instructions = row_match.group(2).strip()
+        
+        # Check for duplicate or out-of-order rows
+        if row_num in self.row_numbers:
+            self.add_error('DUPLICATE_ROW', f'Duplicate row number {row_num}.', line_num, row_num)
+            return
+        
+        if self.row_order and row_num < max(self.row_order):
+            self.add_error('OUT_OF_ORDER_ROW', f'Out of order row number {row_num}.', line_num, row_num)
+            return
+        
+        # Add to row tracking
+        self.row_numbers.add(row_num)
+        self.row_order.append(row_num)
+        
+        # Parse instructions
+        if not instructions:
+            self.add_error('MALFORMED_ROW', 'Row has no instructions.', line_num, row_num)
+            return
+        
+        # Check for empty instruction items
+        instruction_items = [item.strip() for item in instructions.split(',') if item.strip()]
+        if len(instruction_items) == 0:
+            self.add_error('MALFORMED_ROW', 'Row has no instructions.', line_num, row_num)
+            return
+        
+        # Validate instructions
+        for item in instruction_items:
+            if not self.is_valid_stitch(item):
+                self.add_error('UNKNOWN_STITCH', f'Unknown stitch {item}.', line_num, row_num)
+                
+        # Store row
+        self.rows.append({
+            'line': line_num,
+            'row_num': row_num,
+            'instructions': instructions,
+            'instruction_items': instruction_items
+        })
+        
+    def is_valid_stitch(self, stitch):
+        # Check if it's a valid stitch
+        stitch_match = re.match(r'^([a-z]+)([0-9]*)$', stitch)
+        if not stitch_match:
+            return False
+        
+        stitch_type = stitch_match.group(1)
+        stitch_count = stitch_match.group(2)
+        
+        valid_stitches = ['k', 'p', 'yo', 'k2tog', 'ssk', 'inc', 'dec']
+        if stitch_type not in valid_stitches:
+            return False
+        
+        if stitch_count and not stitch_count.isdigit():
+            return False
+        
+        if stitch_count and int(stitch_count) <= 0:
+            return False
+        
+        return True
+        
+    def parse_repeat(self, line, line_num):
+        # Parse repeat statement
+        repeat_match = re.match(r'^repeat rows ([0-9]+)-([0-9]+) x([0-9]+)$', line)
+        if not repeat_match:
+            self.add_error('MALFORMED_REPEAT', 'Malformed repeat statement.', line_num, None)
+            return
+        
+        start = int(repeat_match.group(1))
+        end = int(repeat_match.group(2))
+        count = int(repeat_match.group(3))
+        
+        if start <= 0 or end <= 0:
+            self.add_error('INVALID_REPEAT_RANGE', 'Repeat range contains non-positive row numbers.', line_num, None)
+            return
+        
+        if start > end:
+            self.add_error('INVALID_REPEAT_RANGE', 'Repeat range is invalid.', line_num, None)
+            return
+        
+        if count <= 0:
+            self.add_error('INVALID_REPEAT_COUNT', 'Repeat count must be a positive integer.', line_num, None)
+            return
+        
+        # Check if all rows in range exist
+        for i in range(start, end + 1):
+            if i not in self.row_numbers:
+                self.add_error('INVALID_REPEAT_RANGE', 'Repeat range references rows that do not exist.', line_num, None)
+                return
+        
+        # Store repeat
+        self.rows.append({
+            'line': line_num,
+            'repeat': True,
+            'start': start,
+            'end': end,
+            'count': count
+        })
+        
+    def parse_bind_off(self, line, line_num):
+        if self.bind_off_valid:
+            self.add_error('DUPLICATE_BIND_OFF', 'Duplicate bind-off declaration.', line_num, None)
+            return
+        
+        self.bind_off = True
+        self.bind_off_valid = True
+        self.bind_off_line = line_num
+        
+    def expand_rows(self):
+        # Expand rows including repeats
+        expanded = []
+        
+        # Add original rows
+        for row in self.rows:
+            if 'repeat' in row:
+                # Handle repeat
+                start = row['start']
+                end = row['end']
+                count = row['count']
+                
+                # Add original rows
+                for i in range(count):
+                    for j in range(start, end + 1):
+                        # Find the original row
+                        for orig_row in self.rows:
+                            if orig_row.get('row_num') == j:
+                                expanded.append(orig_row)
+                                break
+            else:
+                expanded.append(row)
+        
+        self.expanded_rows = expanded
+        
+    def simulate_stitches(self):
+        if not self.cast_on_valid:
+            return
+        
+        # Simulate stitch counts
+        current_stitches = self.cast_on
+        
+        for i, row in enumerate(self.expanded_rows):
+            if 'repeat' in row:
                 continue
             
-            # Parse pattern
-            if line.startswith('pattern "'):
-                if self.pattern_name is not None:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "DUPLICATE_PATTERN",
-                        "message": "Duplicate pattern declaration.",
-                        "line": i,
-                        "row": None
-                    })
+            # Process instructions
+            instructions = row['instruction_items']
+            start_stitches = current_stitches
+            end_stitches = current_stitches
+            
+            for instruction in instructions:
+                # Parse instruction
+                inst_match = re.match(r'^([a-z]+)([0-9]*)$', instruction)
+                if not inst_match:
+                    continue
+                
+                stitch_type = inst_match.group(1)
+                stitch_count = inst_match.group(2)
+                
+                if stitch_count:
+                    count = int(stitch_count)
                 else:
-                    try:
-                        self.pattern_name = line.split('pattern "', 1)[1].rsplit('"', 1)[0]
-                    except:
-                        self.errors.append({
-                            "type": "error",
-                            "code": "MALFORMED_PATTERN",
-                            "message": "Malformed pattern declaration.",
-                            "line": i,
-                            "row": None
-                        })
+                    count = 1
+                
+                # Apply stitch semantics
+                if stitch_type == 'k' or stitch_type == 'p':
+                    if count > end_stitches:
+                        self.add_error('STITCH_UNDERFLOW', 'Row consumes more stitches than available.', row['line'], row['row_num'])
+                        return
+                    end_stitches -= count
+                elif stitch_type == 'yo':
+                    end_stitches += 1
+                elif stitch_type == 'k2tog' or stitch_type == 'ssk' or stitch_type == 'dec':
+                    if 2 > end_stitches:
+                        self.add_error('STITCH_UNDERFLOW', 'Row consumes more stitches than available.', row['line'], row['row_num'])
+                        return
+                    end_stitches -= 1
+                elif stitch_type == 'inc':
+                    end_stitches += 1
+                
+                if end_stitches > 10000:
+                    self.add_error('STITCH_OVERFLOW', 'Row produces too many stitches.', row['line'], row['row_num'])
+                    return
             
-            # Parse cast_on
-            elif line.startswith('cast_on '):
-                if self.cast_on is not None:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "DUPLICATE_CAST_ON",
-                        "message": "Duplicate cast_on declaration.",
-                        "line": i,
-                        "row": None
-                    })
-                else:
-                    try:
-                        value = int(line.split('cast_on ')[1])
-                        if value <= 0:
-                            raise ValueError()
-                        self.cast_on = value
-                        self.cast_on_line = i
-                    except:
-                        self.errors.append({
-                            "type": "error",
-                            "code": "MALFORMED_CAST_ON",
-                            "message": "Malformed cast_on declaration.",
-                            "line": i,
-                            "row": None
-                        })
-            
-            # Parse row
-            elif line.startswith('row '):
-                if self.bind_off_line is not None:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "BIND_OFF_OUT_OF_ORDER",
-                        "message": "Statement appears after bind_off.",
-                        "line": i,
-                        "row": None
-                    })
-            
-                # Check if this is a valid row line
-                if ':' not in line:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "MALFORMED_ROW",
-                        "message": "Malformed row declaration.",
-                        "line": i,
-                        "row": None
-                    })
-                else:
-                    try:
-                        row_part, content = line.split(':', 1)
-                        row_num = int(row_part.split()[1])
-            
-                        # Check for valid row number
-                        if row_num <= 0:
-                            self.errors.append({
-                                "type": "error",
-                                "code": "MALFORMED_ROW",
-                                "message": "Malformed row declaration.",
-                                "line": i,
-                                "row": None
-                            })
-                        else:
-                            # Check for duplicate row
-                            if row_num in self.row_numbers:
-                                self.errors.append({
-                                    "type": "error",
-                                    "code": "DUPLICATE_ROW",
-                                    "message": f"Duplicate row number {row_num}.",
-                                    "line": i,
-                                    "row": row_num
-                                })
-                            else:
-                                # Check for out of order row
-                                if self.source_row_order and row_num < max(self.source_row_order):
-                                    self.errors.append({
-                                        "type": "error",
-                                        "code": "OUT_OF_ORDER_ROW",
-                                        "message": f"Row {row_num} is out of order.",
-                                        "line": i,
-                                        "row": row_num
-                                    })
-                                else:
-                                    self.row_numbers.add(row_num)
-                                    self.source_rows[row_num] = content.strip()
-                                    self.source_row_order.append(row_num)
-                    except:
-                        self.errors.append({
-                            "type": "error",
-                            "code": "MALFORMED_ROW",
-                            "message": "Malformed row declaration.",
-                            "line": i,
-                            "row": None
-                        })
-            
-            # Parse bind_off
-            elif line == 'bind_off':
-                if self.bind_off_line is not None:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "DUPLICATE_BIND_OFF",
-                        "message": "Duplicate bind_off declaration.",
-                        "line": i,
-                        "row": None
-                    })
-                else:
-                    self.bind_off = True
-                    self.bind_off_line = i
-            
-            # Parse repeat
-            elif line.startswith('repeat rows '):
-                if self.bind_off_line is not None:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "BIND_OFF_OUT_OF_ORDER",
-                        "message": "Statement appears after bind_off.",
-                        "line": i,
-                        "row": None
-                    })
-            
-                try:
-                    # Parse repeat statement
-                    parts = line.split()
-                    if len(parts) != 5 or parts[0] != 'repeat' or parts[1] != 'rows' or parts[3] != 'x':
-                        self.errors.append({
-                            "type": "error",
-                            "code": "MALFORMED_REPEAT",
-                            "message": "Malformed repeat statement.",
-                            "line": i,
-                            "row": None
-                        })
-                    else:
-                        range_part = parts[2]
-                        count_part = parts[4]
-            
-                        # Check for valid range
-                        if '-' not in range_part:
-                            self.errors.append({
-                                "type": "error",
-                                "code": "MALFORMED_REPEAT",
-                                "message": "Malformed repeat statement.",
-                                "line": i,
-                                "row": None
-                            })
-                        else:
-                            start_str, end_str = range_part.split('-')
-                            try:
-                                start = int(start_str)
-                                end = int(end_str)
-                                count = int(count_part)
-            
-                                if start <= 0 or end <= 0 or start > end:
-                                    self.errors.append({
-                                        "type": "error",
-                                        "code": "INVALID_REPEAT_RANGE",
-                                        "message": "Repeat range references rows that do not exist.",
-                                        "line": i,
-                                        "row": None
-                                    })
-                                elif count <= 0:
-                                    self.errors.append({
-                                        "type": "error",
-                                        "code": "INVALID_REPEAT_COUNT",
-                                        "message": "Repeat count must be a positive integer.",
-                                        "line": i,
-                                        "row": None
-                                    })
-                                else:
-                                    self.row_repeat_statements.append({
-                                        "line": i,
-                                        "start": start,
-                                        "end": end,
-                                        "count": count
-                                    })
-                            except ValueError:
-                                self.errors.append({
-                                    "type": "error",
-                                    "code": "INVALID_REPEAT_COUNT",
-                                    "message": "Repeat count must be a positive integer.",
-                                    "line": i,
-                                    "row": None
-                                })
-                except:
-                    self.errors.append({
-                        "type": "error",
-                        "code": "MALFORMED_REPEAT",
-                        "message": "Malformed repeat statement.",
-                        "line": i,
-                        "row": None
-                    })
-            
-            # Unknown statement
-            else:
-                self.errors.append({
-                    "type": "error",
-                    "code": "UNKNOWN_STATEMENT",
-                    "message": "Unknown statement.",
-                    "line": i,
-                    "row": None
-                })
+            current_stitches = end_stitches
         
-        # Validate required fields
-        if self.pattern_name is None:
-            self.errors.append({
-                "type": "error",
-                "code": "MISSING_PATTERN",
-                "message": "Missing pattern declaration.",
-                "line": None,
-                "row": None
-            })
+    def compile(self, file_path):
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(2)
         
-        if self.cast_on is None:
-            self.errors.append({
-                "type": "error",
-                "code": "MISSING_CAST_ON",
-                "message": "Missing cast_on declaration.",
-                "line": None,
-                "row": None
-            })
+        # Parse all lines
+        for i, line in enumerate(lines):
+            self.line_number = i + 1
+            self.parse_line(line, self.line_number)
         
-        # Check for cast_on out of order
-        if self.cast_on is not None and self.rows_after_cast_on:
-            self.errors.append({
-                "type": "error",
-                "code": "CAST_ON_OUT_OF_ORDER",
-                "message": "cast_on appears after a row declaration.",
-                "line": self.cast_on_line,
-                "row": None
-            })
+        # Validate required declarations
+        if not self.pattern_valid:
+            self.add_error('MISSING_PATTERN', 'Missing pattern declaration.', None, None)
         
-        # Process rows
+        if not self.cast_on_valid:
+            self.add_error('MISSING_CAST_ON', 'Missing cast-on declaration.', None, None)
+        
+        # Check for errors
+        valid = len(self.errors) == 0
+        
+        # Expand rows
         self.expand_rows()
         
-        # Calculate final stitch count
-        if self.cast_on is not None and self.expanded_rows:
-            self.final_stitch_count = self.expanded_rows[-1]["end_stitches"]
-        elif self.cast_on is not None:
-            self.final_stitch_count = self.cast_on
-        
-        return self.get_result()
-    
-    def remove_comments(self, line):
-        """Remove comments from line, respecting quoted strings"""
-        in_quotes = False
-        quote_char = None
-        result = ""
-        
-        i = 0
-        while i < len(line):
-            char = line[i]
+        # Simulate stitches
+        if valid:
+            self.simulate_stitches()
             
-            if not in_quotes and char == '"':
-                in_quotes = True
-                quote_char = char
-                result += char
-            elif in_quotes and char == quote_char:
-                in_quotes = False
-                quote_char = None
-                result += char
-            elif not in_quotes and char == '#':
-                break  # Ignore everything after #
-            else:
-                result += char
-            
-            i += 1
-        
-        return result
-    
-    def parse_instructions(self, content):
-        """Parse instruction content into a list of instruction objects"""
-        instructions = []
-        
-        # Handle bracketed repeats
-        # First, we need to properly parse the instruction list
-        try:
-            # Split by comma to get individual instructions
-            parts = [part.strip() for part in content.split(',') if part.strip()]
-            
-            for part in parts:
-                # Check for bracketed repeat
-                if part.startswith('[') and part.endswith(']'):
-                    # This is a bracketed repeat
-                    # Extract the content inside brackets
-                    bracket_content = part[1:-1]
-                    # Find the x<count> part
-                    if ' x' in bracket_content:
-                        # This is malformed - bracketed repeat should be at the end
-                        self.errors.append({
-                            "type": "error",
-                            "code": "MALFORMED_ROW",
-                            "message": "Malformed row declaration.",
-                            "line": None,
-                            "row": None
-                        })
-                        return []
-                    else:
-                        # Regular bracketed repeat
-                        # For now, just add the bracketed content as a single instruction
-                        # We'll expand this later
-                        instructions.append({
-                            "type": "bracketed",
-                            "content": bracket_content
-                        })
-                else:
-                    # Regular instruction - parse stitch and count
-                    # Match pattern like 'k4', 'yo', 'p10', etc.
-                    match = re.match(r'^([a-zA-Z]+)(\d+)', part)
-                    if match:
-                        stitch = match.group(1)
-                        count = int(match.group(2))
-                        instructions.append({
-                            "stitch": stitch,
-                            "count": count
-                        })
-                    else:
-                        # Single stitch without count (like 'yo')
-                        if part.isalpha():
-                            instructions.append({
-                                "stitch": part,
-                                "count": 1
-                            })
-                        else:
-                            # Malformed instruction
-                            self.errors.append({
-                                "type": "error",
-                                "code": "MALFORMED_ROW",
-                                "message": "Malformed row declaration.",
-                                "line": None,
-                                "row": None
-                            })
-                            return []
-        except Exception as e:
-            self.errors.append({
-                "type": "error",
-                "code": "MALFORMED_ROW",
-                "message": "Malformed row declaration.",
-                "line": None,
-                "row": None
-            })
-            return []
-        
-        return instructions
-    
-    def expand_rows(self):
-        # Process rows in order
-        for row_num in sorted(self.source_rows.keys()):
-            content = self.source_rows[row_num]
-            instructions = self.parse_instructions(content)
-            
-            # For now, just add the row with instructions
-            self.expanded_rows.append({
-                "expanded_row_index": len(self.expanded_rows) + 1,
-                "source_row": row_num,
-                "instructions": instructions,
-                "start_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"],
-                "end_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"]
-            })
-    
-    def get_result(self):
-        valid = len(self.errors) == 0
-        if not valid:
-            self.expanded_rows = []
-            self.final_stitch_count = None
-        
-        return {
-            "pattern_name": self.pattern_name,
-            "cast_on": self.cast_on,
+        # Finalize result
+        result = {
+            "pattern_name": self.pattern_name if self.pattern_valid else None,
+            "cast_on": self.cast_on if self.cast_on_valid else None,
             "valid": valid,
             "errors": self.errors,
-            "expanded_rows": self.expanded_rows,
-            "final_stitch_count": self.final_stitch_count,
+            "expanded_rows": [],
+            "final_stitch_count": None,
             "bind_off": self.bind_off
         }
+        
+        print(json.dumps(result))
+        
+        if not valid:
+            sys.exit(1)
+        else:
+            sys.exit(0)
 
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
-        print("Usage: python3 knit.py compile <input_file>", file=sys.stderr)
+        print("Usage: python knit.py compile <input_file>", file=sys.stderr)
         sys.exit(2)
     
-    input_file = sys.argv[2]
-    
-    try:
-        compiler = KnitCompiler()
-        result = compiler.parse_file(input_file)
-        print(json.dumps(result))
-    except FileNotFoundError:
-        print("Error: File not found", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    compiler = KnitCompiler()
+    compiler.compile(sys.argv[2])
 
 
 if __name__ == "__main__":
