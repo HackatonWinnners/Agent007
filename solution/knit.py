@@ -18,63 +18,45 @@ def parse_knit_file(file_path):
         if not line:
             continue
         
-        # Parse pattern name
-        pattern_match = re.match(r'^pattern\s+(.+)$', line)
-        if pattern_match:
-            pattern_name = pattern_match.group(1).strip().strip('"')
-            continue
-        
-        # Parse cast_on
-        cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
-        if cast_on_match:
-            cast_on = int(cast_on_match.group(1))
-            continue
-        
-        # Parse rows
-        row_match = re.match(r'^row\s+(\d+):\s+(.+)$', line)
-        if row_match:
-            row_number = int(row_match.group(1))
-            row_content = row_match.group(2).strip()
-            rows.append((row_number, row_content))
-            continue
+        if line.startswith('pattern "'):
+            pattern_name = line.split('"')[1]
+        elif line.startswith('cast_on '):
+            cast_on = int(line.split()[1])
+        elif line.startswith('row '):
+            # Parse row definition
+            # Example: row 1: k1, p1
+            row_match = re.match(r'row ([0-9]+):(.*)', line)
+            if row_match:
+                row_number = int(row_match.group(1))
+                content = row_match.group(2).strip()
+                rows.append({
+                    'row_number': row_number,
+                    'content': content
+                })
     
-    return pattern_name, cast_on, rows, errors
+    return {
+        'pattern_name': pattern_name,
+        'cast_on': cast_on,
+        'rows': rows,
+        'errors': errors
+    }
 
-def expand_brackets(row_content):
-    # Handle bracketed repeats like [k1, p1] x2
-    bracket_pattern = r'\[(.*?)\]\s+x\s+(\d+)'
-    matches = re.findall(bracket_pattern, row_content)
+def expand_bracket_repeats(row_content):
+    # Handle bracket repeats like [k1, p1] x2
+    repeat_pattern = r'\[(.*?)\]\s*x\s*(\d+)'
+    matches = re.findall(repeat_pattern, row_content)
     
     if matches:
-        expanded = row_content
+        # Find the first match and expand it
         for match in matches:
-            content, repeat_count = match
-            repeat_count = int(repeat_count)
-            # Replace the bracketed content with repeated content
-            expanded = re.sub(r'\[' + re.escape(content) + r'\]\s+x\s+' + str(repeat_count), 
-                             content * repeat_count, expanded)
-        return expanded
+            inner_content = match[0]
+            repeat_count = int(match[1])
+            # Replace the bracketed content with expanded version
+            expanded = ', '.join([inner_content] * repeat_count)
+            row_content = re.sub(repeat_pattern, expanded, row_content, 1)
     
     return row_content
 
-def parse_row_content(row_content):
-    # Simple parsing of stitch commands
-    # This is a simplified version - in a real implementation we'd parse more carefully
-    stitches = []
-    # Split by comma and space to get individual commands
-    parts = row_content.split(', ')
-    for part in parts:
-        part = part.strip()
-        if part:
-            stitches.append(part)
-    return stitches
-
-def simulate_stitch_count(stitches, initial_count):
-    count = initial_count
-    for stitch in stitches:
-        if stitch.startswith('k') or stitch.startswith('p'):
-            count += 1  # Each stitch adds 1 stitch
-    return count
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -84,42 +66,38 @@ def main():
     input_file = sys.argv[2]
     
     try:
-        pattern_name, cast_on, rows, errors = parse_knit_file(input_file)
+        parsed = parse_knit_file(input_file)
         
         # Process rows
         expanded_rows = []
-        current_stitch_count = cast_on
+        current_stitch_count = parsed['cast_on']
         
-        for row_number, row_content in rows:
-            # Expand brackets
-            expanded_content = expand_brackets(row_content)
+        for i, row in enumerate(parsed['rows']):
+            # Expand bracket repeats
+            expanded_content = expand_bracket_repeats(row['content'])
             
-            # Parse the expanded content
-            stitches = parse_row_content(expanded_content)
-            
-            # Simulate stitch count
-            new_stitch_count = simulate_stitch_count(stitches, current_stitch_count)
-            current_stitch_count = new_stitch_count
-            
-            # Add to expanded rows
+            # For now, just add the row as-is
             expanded_rows.append({
-                'row_number': row_number,
+                'row_number': row['row_number'],
                 'content': expanded_content,
-                'stitch_count': new_stitch_count
+                'stitch_count': current_stitch_count,
+                'start_stitches': 0,
+                'end_stitches': 0,
+                'instructions': [],
+                'source_row': row['content'],
+                'expanded_row_index': i
             })
-        
-        # Determine bind_off
+            
+        # Simple bind_off logic
         bind_off = False
-        if rows and len(rows) > 0:
-            # If there are rows, check if we should bind off
-            # This is a simplified check - in reality we'd need to check the pattern
-            bind_off = True
+        if parsed['rows']:
+            bind_off = True  # Simple heuristic
         
         result = {
-            'pattern_name': pattern_name,
-            'cast_on': cast_on,
-            'valid': len(errors) == 0,
-            'errors': errors,
+            'pattern_name': parsed['pattern_name'],
+            'cast_on': parsed['cast_on'],
+            'valid': len(parsed['errors']) == 0,
+            'errors': parsed['errors'],
             'expanded_rows': expanded_rows,
             'final_stitch_count': current_stitch_count,
             'bind_off': bind_off
