@@ -153,16 +153,58 @@ class KnitCompiler:
         
         return self.get_result()
     
+    def parse_instructions(self, content):
+        """Parse instruction content into a list of instruction objects"""
+        instructions = []
+        # Split by space to get individual instructions
+        parts = content.split()
+        
+        for part in parts:
+            # Handle repeat syntax like "2x k2"
+            if 'x' in part and part.count('x') == 1:
+                # Split on 'x' to get repeat count and instruction
+                repeat_count, instruction = part.split('x', 1)
+                try:
+                    repeat_count = int(repeat_count)
+                    # For now, just add the instruction once
+                    # In the future we'll expand repeats
+                    instructions.append({
+                        "type": "instruction",
+                        "content": instruction,
+                        "repeat": repeat_count
+                    })
+                except ValueError:
+                    # Invalid repeat count
+                    instructions.append({
+                        "type": "error",
+                        "message": f"Invalid repeat count: {repeat_count}",
+                        "content": part
+                    })
+            else:
+                # Regular instruction
+                instructions.append({
+                    "type": "instruction",
+                    "content": part
+                })
+        
+        return instructions
+    
     def expand_rows(self):
-        # Simple expansion for now
-        for row_num, content in self.source_rows.items():
-            # For now, just add the row as-is
+        # Process rows in order
+        for row_num in sorted(self.source_rows.keys()):
+            content = self.source_rows[row_num]
+            instructions = self.parse_instructions(content)
+            
+            # Calculate stitch count
+            start_stitches = self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"]
+            
+            # For now, just add the row with instructions
             self.expanded_rows.append({
                 "expanded_row_index": len(self.expanded_rows) + 1,
                 "source_row": row_num,
-                "instructions": [],
-                "start_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"],
-                "end_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"]
+                "instructions": instructions,
+                "start_stitches": start_stitches,
+                "end_stitches": start_stitches
             })
     
     def get_result(self):
