@@ -15,6 +15,9 @@ class KnitCompiler:
         self.expanded_rows = []
         self.row_numbers = set()
         self.row_order = []
+        self.cast_on_valid = False
+        self.pattern_valid = False
+        self.bind_off_valid = False
         
     def add_error(self, code, message, line=None, row=None):
         error = {
@@ -48,7 +51,13 @@ class KnitCompiler:
             if not pattern_match:
                 self.add_error('MALFORMED_PATTERN', 'Malformed pattern declaration.', line_num, None)
                 return
+            
+            if self.pattern_valid:
+                self.add_error('DUPLICATE_PATTERN', 'Duplicate pattern declaration.', line_num, None)
+                return
+            
             self.pattern_name = pattern_match.group(1)
+            self.pattern_valid = True
             return
         
         # Parse cast_on
@@ -57,7 +66,18 @@ class KnitCompiler:
             if not cast_on_match:
                 self.add_error('MALFORMED_CAST_ON', 'Malformed cast-on declaration.', line_num, None)
                 return
-            self.cast_on = int(cast_on_match.group(1))
+            
+            cast_on_value = int(cast_on_match.group(1))
+            if cast_on_value <= 0:
+                self.add_error('MALFORMED_CAST_ON', 'Malformed cast-on declaration.', line_num, None)
+                return
+            
+            if self.cast_on_valid:
+                self.add_error('DUPLICATE_CAST_ON', 'Duplicate cast-on declaration.', line_num, None)
+                return
+            
+            self.cast_on = cast_on_value
+            self.cast_on_valid = True
             return
         
         # Parse row
@@ -88,11 +108,23 @@ class KnitCompiler:
                 self.add_error('MALFORMED_ROW', 'Row has no instructions.', line_num, row_num)
                 return
             
+            # Check for empty instruction items
+            instruction_items = [item.strip() for item in instructions.split(',') if item.strip()]
+            if len(instruction_items) == 0:
+                self.add_error('MALFORMED_ROW', 'Row has no instructions.', line_num, row_num)
+                return
+            
+            # Validate instructions
+            for item in instruction_items:
+                if not self.is_valid_stitch(item):
+                    self.add_error('UNKNOWN_STITCH', f'Unknown stitch {item}.', line_num, row_num)
+                    
             # Store row
             self.rows.append({
                 'line': line_num,
                 'row_num': row_num,
-                'instructions': instructions
+                'instructions': instructions,
+                'instruction_items': instruction_items
             })
             return
         
@@ -137,11 +169,37 @@ class KnitCompiler:
         
         # Parse bind_off
         if line == 'bind_off':
+            if self.bind_off_valid:
+                self.add_error('DUPLICATE_BIND_OFF', 'Duplicate bind-off declaration.', line_num, None)
+                return
+            
             self.bind_off = True
+            self.bind_off_valid = True
             return
         
         # Unknown statement
         self.add_error('UNKNOWN_STATEMENT', 'Unknown statement.', line_num, None)
+        
+    def is_valid_stitch(self, stitch):
+        # Check if it's a valid stitch
+        stitch_match = re.match(r'^([a-z]+)([0-9]*)$', stitch)
+        if not stitch_match:
+            return False
+        
+        stitch_type = stitch_match.group(1)
+        stitch_count = stitch_match.group(2)
+        
+        valid_stitches = ['k', 'p', 'yo', 'k2tog', 'ssk', 'inc', 'dec']
+        if stitch_type not in valid_stitches:
+            return False
+        
+        if stitch_count and not stitch_count.isdigit():
+            return False
+        
+        if stitch_count and int(stitch_count) <= 0:
+            return False
+        
+        return True
         
     def expand_rows(self):
         # Expand rows including repeats
@@ -169,7 +227,7 @@ class KnitCompiler:
         self.expanded_rows = expanded
         
     def simulate_stitches(self):
-        if not self.cast_on:
+        if not self.cast_on_valid:
             return
         
         # Simulate stitch counts
@@ -180,10 +238,11 @@ class KnitCompiler:
                 continue
             
             # Process instructions
-            instructions = row['instructions']
-            instruction_items = [item.strip() for item in instructions.split(',') if item.strip()]
+            instructions = row['instruction_items']
+            start_stitches = current_stitches
+            end_stitches = current_stitches
             
-            for instruction in instruction_items:
+            for instruction in instructions:
                 # Parse instruction
                 inst_match = re.match(r'^([a-z]+)([0-9]*)$', instruction)
                 if not inst_match:
@@ -199,25 +258,25 @@ class KnitCompiler:
                 
                 # Apply stitch semantics
                 if stitch_type == 'k' or stitch_type == 'p':
-                    if count > current_stitches:
+                    if count > end_stitches:
                         self.add_error('STITCH_UNDERFLOW', 'Row consumes more stitches than available.', row['line'], row['row_num'])
                         return
-                    current_stitches -= count
+                    end_stitches -= count
                 elif stitch_type == 'yo':
-                    current_stitches += 1
+                    end_stitches += 1
                 elif stitch_type == 'k2tog' or stitch_type == 'ssk' or stitch_type == 'dec':
-                    if 2 > current_stitches:
+                    if 2 > end_stitches:
                         self.add_error('STITCH_UNDERFLOW', 'Row consumes more stitches than available.', row['line'], row['row_num'])
                         return
-                    current_stitches -= 1
+                    end_stitches -= 1
                 elif stitch_type == 'inc':
-                    current_stitches += 1
+                    end_stitches += 1
                 
-                if current_stitches > 10000:
+                if end_stitches > 10000:
                     self.add_error('STITCH_OVERFLOW', 'Row produces too many stitches.', row['line'], row['row_num'])
                     return
-        
-        return current_stitches
+            
+            current_stitches = end_stitches
         
     def compile(self, file_path):
         try:
@@ -232,10 +291,10 @@ class KnitCompiler:
             self.parse_line(line, i + 1)
         
         # Validate required declarations
-        if not self.pattern_name:
+        if not self.pattern_valid:
             self.add_error('MISSING_PATTERN', 'Missing pattern declaration.', None, None)
         
-        if not self.cast_on:
+        if not self.cast_on_valid:
             self.add_error('MISSING_CAST_ON', 'Missing cast-on declaration.', None, None)
         
         # Check for errors
@@ -245,14 +304,47 @@ class KnitCompiler:
         self.expand_rows()
         
         # Simulate stitches
-        final_stitch_count = None
         if valid:
-            final_stitch_count = self.simulate_stitches()
+            self.simulate_stitches()
+            
+        # Calculate final stitch count
+        final_stitch_count = None
+        if self.cast_on_valid and not self.errors:
+            # Simulate to get final stitch count
+            current_stitches = self.cast_on
+            for row in self.expanded_rows:
+                if 'repeat' in row:
+                    continue
+                
+                instructions = row['instruction_items']
+                for instruction in instructions:
+                    inst_match = re.match(r'^([a-z]+)([0-9]*)$', instruction)
+                    if not inst_match:
+                        continue
+                    
+                    stitch_type = inst_match.group(1)
+                    stitch_count = inst_match.group(2)
+                    
+                    if stitch_count:
+                        count = int(stitch_count)
+                    else:
+                        count = 1
+                    
+                    if stitch_type == 'k' or stitch_type == 'p':
+                        current_stitches -= count
+                    elif stitch_type == 'yo':
+                        current_stitches += 1
+                    elif stitch_type == 'k2tog' or stitch_type == 'ssk' or stitch_type == 'dec':
+                        current_stitches -= 1
+                    elif stitch_type == 'inc':
+                        current_stitches += 1
+            
+            final_stitch_count = current_stitches
         
         # Finalize result
         result = {
-            "pattern_name": self.pattern_name,
-            "cast_on": self.cast_on,
+            "pattern_name": self.pattern_name if self.pattern_valid else None,
+            "cast_on": self.cast_on if self.cast_on_valid else None,
             "valid": valid,
             "errors": self.errors,
             "expanded_rows": self.expanded_rows,
