@@ -5,7 +5,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Inter, sans-serif;
+  font-family: "SF Pro Display", -apple-system, "Helvetica Neue", Inter, sans-serif;
   color: #e6edf3;
   background: #0d1117;
   -webkit-font-smoothing: antialiased;
@@ -13,114 +13,126 @@ body {
 .slide {
   width: 1280px;
   height: 720px;
-  padding: 64px 80px;
+  padding: 56px 80px;
   page-break-after: always;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at top right, rgba(88, 166, 255, 0.10), transparent 50%),
-    radial-gradient(circle at bottom left, rgba(255, 121, 198, 0.08), transparent 50%),
+    radial-gradient(circle at 85% 15%, rgba(88, 166, 255, 0.10), transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(255, 121, 198, 0.08), transparent 55%),
     #0d1117;
-  border-left: 6px solid #58a6ff;
 }
 .slide:last-child { page-break-after: auto; }
 .slide.title {
   justify-content: center;
   text-align: center;
-  border-left: none;
   background:
-    radial-gradient(circle at center, rgba(88, 166, 255, 0.22), transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(88, 166, 255, 0.18), transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(255, 121, 198, 0.18), transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(63, 185, 80, 0.10), transparent 60%),
     #0d1117;
 }
-.slide.title h1 {
-  font-size: 96px;
-  letter-spacing: -2px;
-  margin: 0 0 16px;
-  background: linear-gradient(135deg, #58a6ff 0%, #ff79c6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.title-stack { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
+.title-eyebrow {
+  font-size: 18px; letter-spacing: 4px; text-transform: uppercase; color: #8b949e;
 }
-.slide.title h2 {
-  font-size: 28px;
-  font-weight: 500;
-  color: #8b949e;
-  margin: 0 0 40px;
-  border: none;
-  padding: 0;
+.hero {
+  font-size: 124px; line-height: 0.9; letter-spacing: -3px; margin: 0;
+  background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 50%, #ff79c6 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font-weight: 800;
 }
-.slide.title p { font-size: 22px; color: #c9d1d9; margin: 12px 0; }
-.slide.title p em { color: #58a6ff; font-style: normal; }
+.title-team { font-size: 20px; color: #c9d1d9; margin-top: 8px; }
+.title-team strong { color: #ff79c6; }
+.score-row { display: flex; gap: 60px; margin-top: 28px; }
+.big-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.big-num { font-size: 64px; font-weight: 700; color: #58a6ff; line-height: 1; }
+.big-num-dim { font-size: 32px; color: #484f58; font-weight: 500; }
+.big-lbl { font-size: 14px; letter-spacing: 2px; color: #8b949e; text-transform: uppercase; }
+.score-row .big-stat:nth-child(2) .big-num { color: #ff79c6; }
+.score-row .big-stat:nth-child(3) .big-num { color: #3fb950; }
+.tagline { font-size: 22px; color: #c9d1d9; line-height: 1.5; margin-top: 24px; max-width: 900px; }
+
 h1 {
-  font-size: 56px;
-  font-weight: 700;
-  color: #58a6ff;
-  margin: 0 0 24px;
+  font-size: 56px; font-weight: 700; color: #58a6ff; margin: 0 0 24px;
   letter-spacing: -0.5px;
 }
 h2 {
-  font-size: 40px;
-  font-weight: 600;
-  color: #c9d1d9;
-  margin: 0 0 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #30363d;
+  font-size: 40px; font-weight: 600; color: #c9d1d9; margin: 0 0 24px;
+  padding-bottom: 12px; border-bottom: 2px solid #30363d;
 }
+h2 .muted { font-size: 26px; color: #6e7681; font-weight: 400; margin-left: 8px; }
 p { font-size: 22px; color: #c9d1d9; line-height: 1.5; margin: 8px 0; }
 ul { margin: 12px 0; padding-left: 28px; }
-li { font-size: 22px; color: #c9d1d9; line-height: 1.6; margin: 6px 0; }
+li { font-size: 21px; color: #c9d1d9; line-height: 1.55; margin: 6px 0; }
 strong { color: #ff79c6; font-weight: 600; }
 em { color: #79c0ff; font-style: normal; }
 code {
   font-family: "SF Mono", Menlo, Consolas, monospace;
-  background: rgba(110, 118, 129, 0.4);
+  background: rgba(110, 118, 129, 0.30);
   color: #79c0ff;
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 0.9em;
+  font-size: 0.88em;
 }
 pre {
-  background: #161b22;
-  border: 1px solid #30363d;
-  padding: 18px 22px;
-  border-radius: 10px;
-  margin: 16px 0;
-  overflow-x: auto;
+  background: #161b22; border: 1px solid #30363d; padding: 18px 22px;
+  border-radius: 10px; margin: 16px 0; overflow-x: auto;
 }
 pre code { background: none; color: #c9d1d9; padding: 0; font-size: 18px; }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
-  font-size: 19px;
-}
-th, td {
-  padding: 10px 14px;
-  text-align: left;
-  border-bottom: 1px solid #30363d;
-}
-th { color: #58a6ff; font-weight: 600; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 19px; }
+th, td { padding: 9px 14px; text-align: left; border-bottom: 1px solid #21262d; }
+th { color: #58a6ff; font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 2px solid #30363d; }
 td { color: #c9d1d9; }
-tr:hover td { background: rgba(88, 166, 255, 0.05); }
-td:last-child, th:last-child { text-align: right; }
+tr:hover td { background: rgba(88, 166, 255, 0.04); }
+
+.score-cell { display: inline-flex; align-items: center; gap: 12px; min-width: 140px; }
+.score-num { font-variant-numeric: tabular-nums; min-width: 56px; color: #f0f6fc; }
+.score-bar { display: inline-block; flex: 1; height: 10px; background: #21262d; border-radius: 5px; overflow: hidden; min-width: 70px; }
+.score-fill { display: block; height: 100%; border-radius: 5px; transition: width 0.3s; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 20px; }
+.stat-card {
+  background: linear-gradient(135deg, rgba(88,166,255,0.06), rgba(255,121,198,0.04));
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 22px 26px;
+  text-align: left;
+}
+.stat-num { font-size: 48px; font-weight: 700; line-height: 1; background: linear-gradient(135deg, #58a6ff, #ff79c6); -webkit-background-clip: text; background-clip: text; color: transparent; font-variant-numeric: tabular-nums; }
+.stat-lbl { font-size: 14px; color: #8b949e; letter-spacing: 0.5px; margin-top: 8px; text-transform: uppercase; }
+
+.chart-wrap { display: flex; justify-content: center; margin: 16px 0; }
+.chart { width: 100%; max-width: 1100px; height: 330px; }
+.chart .pt-lbl { fill: #ff79c6; font-size: 18px; font-weight: 600; text-anchor: middle; font-family: "SF Pro Display", sans-serif; font-variant-numeric: tabular-nums; }
+.chart .t-lbl { fill: #c9d1d9; font-size: 14px; text-anchor: middle; font-family: "SF Pro Display", sans-serif; }
+.chart .t-sub { fill: #6e7681; font-size: 12px; text-anchor: middle; font-family: "SF Pro Display", sans-serif; }
+.chart .ax-lbl { fill: #484f58; font-size: 12px; text-anchor: end; font-family: "SF Pro Display", sans-serif; font-variant-numeric: tabular-nums; }
+.chart-caption { font-size: 16px; color: #8b949e; max-width: 1000px; margin: 8px auto 0; line-height: 1.5; }
+
+.arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+.arch-box { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 18px 20px; }
+.arch-box.accent-blue { border-top: 3px solid #58a6ff; }
+.arch-box.accent-pink { border-top: 3px solid #ff79c6; }
+.arch-box.accent-green { border-top: 3px solid #3fb950; }
+.arch-box.accent-yellow { border-top: 3px solid #f0883e; }
+.arch-box.accent-purple { border-top: 3px solid #bc8cff; }
+.arch-box.accent-red { border-top: 3px solid #f85149; }
+.arch-title { font-size: 18px; color: #f0f6fc; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.arch-body { font-size: 15px; color: #8b949e; line-height: 1.55; }
+.arch-body code { font-size: 0.95em; padding: 1px 6px; }
+
 a { color: #79c0ff; text-decoration: none; }
 .footer {
-  position: absolute;
-  bottom: 20px;
-  right: 80px;
-  font-size: 14px;
-  color: #484f58;
+  position: absolute; bottom: 20px; right: 80px;
+  font-size: 12px; color: #484f58; letter-spacing: 0.5px;
 }
 </style></head>
 <body>
-<section class="slide title"><h1>NEEDLE AGENT</h1>
-<h2>team HackatonWinners — @Lap @malachi @Konstantin @SteDP</h2>
-<p><strong>Public: 79/150 (52.7%) · Hidden: 31/100 (31%)</strong></p>
-<p>*A self-restarting, watchdog-guarded, multi-tier coding agent that</p>
-<p>overnight ground a knitting compiler out of nothing.*</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 1/13</div></section><section class="slide"><h2>the rules of the game</h2>
+<section class="slide title"><div class="title-stack"><div class="title-eyebrow">42 Berlin × Needle · Agent Hackathon</div><h1 class="hero">NEEDLE<br>AGENT</h1><div class="title-team">team <strong>HackatonWinners</strong> · @Lap · @malachi · @Konstantin · @SteDP</div><div class="score-row"><div class="big-stat"><div class="big-num">79<span class="big-num-dim">/150</span></div><div class="big-lbl">public · 52.7%</div></div><div class="big-stat"><div class="big-num">31<span class="big-num-dim">/100</span></div><div class="big-lbl">hidden · 31%</div></div><div class="big-stat"><div class="big-num">1187</div><div class="big-lbl">commits since 19:45</div></div></div><div class="tagline">A self-restarting, watchdog-guarded, multi-tier coding agent<br>that overnight ground a knitting compiler out of nothing.</div></div><div class="footer">HackatonWinners · 42 Berlin × Needle · 1/13</div></section><section class="slide"><h2>the rules of the game</h2>
 <ul>
 <li>Read a hidden spec at 20:00 Thursday</li>
 <li>Build the program it describes</li>
@@ -128,31 +140,10 @@ a { color: #79c0ff; text-decoration: none; }
 <li>Use only <strong>free</strong> or <strong>local</strong> models — no paid Claude/GPT/Copilot</li>
 <li>Judges grade: 40% hidden tests + 20% public + 20% process + 10% self-tests + 10% talk</li>
 <li><em>The agent is the project. The program is just the battlefield.</em></li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 2/13</div></section><section class="slide"><h2>what we built (before reveal)</h2>
-<p>A TypeScript/Bun coding agent inspired by the leaked Claude Code source.</p>
-<ul>
-<li><strong>9 tools</strong>: <code>read</code>, <code>edit</code>, <code>write</code>, <code>bash</code>, <code>glob</code>, <code>grep</code>, <code>run_tests</code>, <code>load_skill</code>, <code>spawn_subagent</code>, <code>submit_done</code></li>
-<li><strong><code>edit</code> invariants from Claude Code</strong>: read-before-edit, exact-match, mtime guard</li>
-<li><strong>query/tool-call loop</strong> with cycle detection, auto-compaction, XML-tool-call recovery</li>
-<li><strong>Multi-tier model router</strong> with timeout, retry, 429 cooldown, fallback chain</li>
-<li><strong>Subagent system</strong> (planner / implementer / tester / failure_analyst / self_test_writer)</li>
-<li><strong>10 pre-written skills</strong> + 2 knitting-domain skills (<code>knitting-error-format</code>, <code>knitting-stitch-math</code>)</li>
-<li><strong>Pretty terminal UI</strong> with ANSI boxes (Claude Code vibe)</li>
-<li><strong>Watchdog</strong> that restarts agent on death and restores best <code>knit.py</code> on regression</li>
-</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 3/13</div></section><section class="slide"><h2>the reveal (20:00)</h2>
+</ul><div class="footer">HackatonWinners · 42 Berlin × Needle · 2/13</div></section><section class="slide"><h2>architecture <span class="muted">— what we built</span></h2><div class="arch-grid"><div class="arch-box accent-blue"><div class="arch-title">model router</div><div class="arch-body">Cerebras Cloud (Qwen3-235B) → Ollama local (Qwen3-Coder-30B) failover. 60 s 429 cooldown, retry+backoff, hard timeout.</div></div><div class="arch-box accent-pink"><div class="arch-title">query loop</div><div class="arch-body">Per-iter: <code>read</code> → model → parse tool calls → execute → tool_result → repeat. Auto-commit per iteration.</div></div><div class="arch-box accent-green"><div class="arch-title">9 tools</div><div class="arch-body">read · write · edit · bash · glob · grep · run_tests · load_skill · spawn_subagent · submit_done. <code>edit</code> has read-before-edit + exact-match guards from Claude Code.</div></div><div class="arch-box accent-yellow"><div class="arch-title">12 skills</div><div class="arch-body">On-demand markdown injected via <code>load_skill</code>. Generic + 2 knitting-domain (error-format, stitch-math).</div></div><div class="arch-box accent-purple"><div class="arch-title">safety nets</div><div class="arch-body">cycle detector (3+ same call) · auto-compaction (>60 KB) · XML tool-call recovery · thinking-without-action nudge.</div></div><div class="arch-box accent-red"><div class="arch-title">watchdog</div><div class="arch-body">External bash loop: restarts agent on death · restores best <code>knit.py</code> on regression · pushes to GitHub every 10 min.</div></div></div><div class="footer">HackatonWinners · 42 Berlin × Needle · 3/13</div></section><section class="slide"><h2>the reveal (20:00)</h2>
 <p><code>secret_spec/SECRET_SPEC.md</code> — <strong>Knitting Compiler</strong>, 927 lines</p>
 <pre><code class="lang-bash">python3 solution/knit.py compile &lt;file.knit&gt;</code></pre>
-<p>Parses a knitting DSL, validates, expands repeats, simulates stitch counts row by row, emits one deterministic JSON. 150 public tests across 8 levels of difficulty.</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 4/13</div></section><section class="slide"><h2>the journey</h2>
-<table>
-<thead><tr><th>time</th><th>score</th><th>what</th></tr></thead>
-<tbody>
-<tr><td>20:30</td><td>3/150</td><td>first scaffold via Featherless Qwen3-Coder-480B</td></tr>
-<tr><td>22:16</td><td>51/150</td><td>basic parsing + simulation</td></tr>
-<tr><td>00:00</td><td>76/150</td><td>cloud peak — then regressed by an over-eager edit</td></tr>
-<tr><td>03:00</td><td>71/150</td><td>local Ollama overnight grind</td></tr>
-<tr><td>09:54</td><td>77/150</td><td>Cerebras Cloud Qwen3-235B back in primary</td></tr>
-<tr><td>10:20</td><td><strong>79/150</strong></td><td>knitting-domain skills + planner workflow</td></tr>
-</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 5/13</div></section><section class="slide"><h2>the model carousel</h2>
+<p>Parses a knitting DSL, validates, expands repeats, simulates stitch counts row by row, emits one deterministic JSON. 150 public tests across 8 levels of difficulty.</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 4/13</div></section><section class="slide"><h2>the journey <span class="muted">— score over time</span></h2><div class="chart-wrap"><svg viewBox="0 0 1000 330" class="chart"><line x1="60" y1="180.0" x2="970" y2="180.0" stroke="#21262d" stroke-dasharray="3,4"/><text x="50" y="184.0" class="ax-lbl">25</text><line x1="60" y1="130.0" x2="970" y2="130.0" stroke="#21262d" stroke-dasharray="3,4"/><text x="50" y="134.0" class="ax-lbl">50</text><line x1="60" y1="80.0" x2="970" y2="80.0" stroke="#21262d" stroke-dasharray="3,4"/><text x="50" y="84.0" class="ax-lbl">75</text><line x1="60" y1="30.0" x2="970" y2="30.0" stroke="#21262d" stroke-dasharray="3,4"/><text x="50" y="34.0" class="ax-lbl">100</text><polyline points="60.0,224.0 242.0,128.0 424.0,78.0 606.0,88.0 788.0,76.0 970.0,72.0" fill="none" stroke="url(#grad1)" stroke-width="4"/><defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#58a6ff"/><stop offset="100%" stop-color="#ff79c6"/></linearGradient></defs><circle cx="60.0" cy="224.0" r="7" fill="#ff79c6" stroke="#0d1117" stroke-width="3"/><circle cx="242.0" cy="128.0" r="7" fill="#ff79c6" stroke="#0d1117" stroke-width="3"/><circle cx="424.0" cy="78.0" r="7" fill="#ff79c6" stroke="#0d1117" stroke-width="3"/><circle cx="606.0" cy="88.0" r="7" fill="#ff79c6" stroke="#0d1117" stroke-width="3"/><circle cx="788.0" cy="76.0" r="7" fill="#ff79c6" stroke="#0d1117" stroke-width="3"/><circle cx="970.0" cy="72.0" r="7" fill="#ff79c6" stroke="#0d1117" stroke-width="3"/><text x="60.0" y="209.0" class="pt-lbl">3</text><text x="242.0" y="113.0" class="pt-lbl">51</text><text x="424.0" y="63.0" class="pt-lbl">76</text><text x="606.0" y="73.0" class="pt-lbl">71</text><text x="788.0" y="61.0" class="pt-lbl">77</text><text x="970.0" y="57.0" class="pt-lbl">79</text><text x="60.0" y="258.0" class="t-lbl">20:30</text><text x="60.0" y="276.0" class="t-sub">first scaffold</text><text x="242.0" y="258.0" class="t-lbl">22:16</text><text x="242.0" y="276.0" class="t-sub">basic parsing</text><text x="424.0" y="258.0" class="t-lbl">00:00</text><text x="424.0" y="276.0" class="t-sub">cloud peak</text><text x="606.0" y="258.0" class="t-lbl">03:00</text><text x="606.0" y="276.0" class="t-sub">local Ollama</text><text x="788.0" y="258.0" class="t-lbl">09:54</text><text x="788.0" y="276.0" class="t-sub">Cerebras 235B</text><text x="970.0" y="258.0" class="t-lbl">10:20</text><text x="970.0" y="276.0" class="t-sub">knitting skills</text></svg></div><p class="chart-caption">From 3 to 79/150 in 14 hours. Every dot is a <code>run_tests</code> result. The dip at 03:00 is the swap from cloud (regressed) to local Ollama; the climb after is Cerebras+local hybrid with knitting-domain skills.</p><div class="footer">HackatonWinners · 42 Berlin × Needle · 5/13</div></section><section class="slide"><h2>the model carousel</h2>
 <table>
 <thead><tr><th>Tried</th><th>Verdict</th></tr></thead>
 <tbody>
@@ -164,21 +155,7 @@ a { color: #79c0ff; text-decoration: none; }
 <tr><td>Qwen3-235B (<strong>Cerebras free</strong>)</td><td>~2000 tok/s — primary</td></tr>
 <tr><td>Qwen3-Coder-30B UD-Q4_K_XL (local Ollama)</td><td>~80 tok/s — fallback</td></tr>
 <tr><td>Qwen3-Coder-30B IQ4_NL (local)</td><td>broken — invented tool names like <code>_write</code>, args like <code>"Eight"</code></td></tr>
-</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 6/13</div></section><section class="slide"><h2>the overnight grind (in numbers)</h2>
-<table>
-<thead><tr><th>metric</th><th>count</th></tr></thead>
-<tbody>
-<tr><td>agent decisions logged</td><td><strong>906</strong></td></tr>
-<tr><td>commits since checkpoint</td><td><strong>1187</strong></td></tr>
-<tr><td>watchdog auto-restarts</td><td>23</td></tr>
-<tr><td>Cerebras-cooldown events</td><td>808</td></tr>
-<tr><td>thinking-without-action nudges</td><td>621</td></tr>
-<tr><td>context auto-compactions</td><td>199</td></tr>
-<tr><td>provider auto-fallbacks</td><td>66</td></tr>
-<tr><td>cycle prunes</td><td>11</td></tr>
-<tr><td>all-providers-down events</td><td>4</td></tr>
-<tr><td>run_tests invocations</td><td>42</td></tr>
-</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 7/13</div></section><section class="slide"><h2>what worked</h2>
+</tbody></table><div class="footer">HackatonWinners · 42 Berlin × Needle · 6/13</div></section><section class="slide"><h2>the overnight grind <span class="muted">— in numbers</span></h2><div class="stats-grid"><div class="stat-card"><div class="stat-num">906</div><div class="stat-lbl">agent decisions</div></div><div class="stat-card"><div class="stat-num">1187</div><div class="stat-lbl">git commits since checkpoint</div></div><div class="stat-card"><div class="stat-num">23</div><div class="stat-lbl">watchdog auto-restarts</div></div><div class="stat-card"><div class="stat-num">808</div><div class="stat-lbl">Cerebras 429 cooldowns</div></div><div class="stat-card"><div class="stat-num">621</div><div class="stat-lbl">thinking-without-action nudges</div></div><div class="stat-card"><div class="stat-num">199</div><div class="stat-lbl">context auto-compactions</div></div><div class="stat-card"><div class="stat-num">66</div><div class="stat-lbl">provider auto-fallbacks</div></div><div class="stat-card"><div class="stat-num">42</div><div class="stat-lbl">run_tests invocations</div></div><div class="stat-card"><div class="stat-num">4</div><div class="stat-lbl">all-providers-down events</div></div></div><div class="footer">HackatonWinners · 42 Berlin × Needle · 7/13</div></section><section class="slide"><h2>what worked</h2>
 <ul>
 <li><strong>Per-iteration auto-commit</strong> — <code>git log</code> is a play-by-play of the agent's thinking</li>
 <li><strong>Claude Code's edit invariants</strong> — read-before-edit + exact-match killed an entire class of silent overwrites</li>
@@ -190,12 +167,12 @@ a { color: #79c0ff; text-decoration: none; }
 <table>
 <thead><tr><th>hidden category</th><th>score</th><th>diagnosis</th></tr></thead>
 <tbody>
-<tr><td>boundary_stress_valid</td><td><strong>14/15</strong></td><td>large patterns work, math holds at scale</td></tr>
-<tr><td>cli_behavior</td><td><strong>4/5</strong></td><td>CLI contract solid</td></tr>
+<tr><td>boundary_stress_valid</td><td><span class="score-cell"><span class="score-num"><strong>14/15</strong></span><span class="score-bar"><span class="score-fill" style="width:93%;background:#3fb950"></span></span></span></td><td>large patterns work, math holds at scale</td></tr>
+<tr><td>cli_behavior</td><td><span class="score-cell"><span class="score-num"><strong>4/5</strong></span><span class="score-bar"><span class="score-fill" style="width:80%;background:#3fb950"></span></span></span></td><td>CLI contract solid</td></tr>
 <tr><td>schema_exactness_valid_outputs</td><td>7/15</td><td>half — JSON field shape mismatches</td></tr>
 <tr><td>compositional_valid_patterns</td><td>6/30</td><td><strong>systematic off-by-one in stitch math</strong> — 24/24 failures show <code>expected N, got N+1</code></td></tr>
-<tr><td>edge_policy</td><td><strong>0/10</strong></td><td>not detecting invalid → exit 0 when judge expects 1</td></tr>
-<tr><td>interaction_effect_invalid_patterns</td><td><strong>0/25</strong></td><td>same root cause as public level_05/06 — error emission shape never landed</td></tr>
+<tr><td>edge_policy</td><td><span class="score-cell"><span class="score-num"><strong>0/10</strong></span><span class="score-bar"><span class="score-fill" style="width:0%;background:#f85149"></span></span></span></td><td>not detecting invalid → exit 0 when judge expects 1</td></tr>
+<tr><td>interaction_effect_invalid_patterns</td><td><span class="score-cell"><span class="score-num"><strong>0/25</strong></span><span class="score-bar"><span class="score-fill" style="width:0%;background:#f85149"></span></span></span></td><td>same root cause as public level_05/06 — error emission shape never landed</td></tr>
 </tbody></table>
 <p><strong>Root causes (identifiable, not random):</strong></p>
 <ul>
@@ -223,5 +200,5 @@ a { color: #79c0ff; text-decoration: none; }
               └─ 1187 commits ─→ HEAD  (every iteration a commit, every commit a decision)</code></pre>
 <p>Public score is the battlefield score.</p>
 <p>The agent is what we built.</p>
-<p><strong><a href="https://github.com/HackatonWinnners/Agent007</strong>">https://github.com/HackatonWinnners/Agent007</strong></a></p><div class="footer">HackatonWinners · 42 Berlin × Needle · 12/13</div></section><section class="slide"><h2>thank you 🧶</h2><div class="footer">HackatonWinners · 42 Berlin × Needle · 13/13</div></section>
+<p><strong>https://github.com/HackatonWinnners/Agent007</strong></p><div class="footer">HackatonWinners · 42 Berlin × Needle · 12/13</div></section><section class="slide"><h2>thank you 🧶</h2><div class="footer">HackatonWinners · 42 Berlin × Needle · 13/13</div></section>
 </body></html>
