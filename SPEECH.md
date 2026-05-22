@@ -1,119 +1,83 @@
 # 5-Minute Speech — Needle Agent
 
-*Read at ~140 words/min. Total ~650 words = ~4 min 40 s, leaves room for breath, pauses, and one question.*
+*~430 words spoken at ~140 wpm ≈ 3 min, leaves room for pauses + Q&A.*
 
 ---
 
-## (0:00 — 0:30) hook + scores
+## (0:00 — 0:30) hook
 
-Hi, we're team HackatonWinners. Four of us — Lap, Malachi, Konstantin, SteDP.
+Team HackatonWinners — four of us.
 
-Our final scores: **79 out of 150 on public tests, 31 out of 100 on hidden.**
+Public: **79 out of 150.** Hidden: **31 out of 100.**
 
-But the score isn't the project. **The agent is the project.** And our agent
-made **1187 commits** between the 19:45 checkpoint and submission. Every
-single one is one decision it made on its own. That's what we want to show
-you.
+But the score isn't the project. **The agent is the project.** Between the
+19:45 checkpoint and now, our agent made **1187 commits** — every single one
+a decision it made on its own.
 
-## (0:30 — 1:30) architecture in one breath
+## (0:30 — 1:10) architecture
 
-We built a TypeScript-Bun agent from scratch.
+A TypeScript-Bun agent, built from scratch. Nine tools, twelve skills,
+three-tier model router, watchdog supervisor.
 
-It has nine tools — read, write, edit, bash, glob, grep, run_tests,
-load_skill, and spawn_subagent. The `edit` tool enforces read-before-edit
-and exact-match guards — that one invariant alone killed an entire class
-of silent overwrites where the model would clobber a file based on a
-stale view of its contents.
+The `edit` tool enforces read-before-edit and exact-match guards — one
+invariant that killed an entire class of silent overwrites.
 
-A three-tier model router with 429 cooldown and automatic failover.
+Cerebras Cloud's free tier (Qwen3-235B) as primary; local Ollama
+(Qwen3-Coder-30B) as fallback when Cerebras hits its per-minute quota.
 
-A pretty terminal UI — banners, colored tool calls, iteration boxes.
-A watchdog that restarts the agent when it dies and *restores the best
-`knit.py` from git history* whenever the model regresses.
+## (1:10 — 2:00) one full cycle — *(walk the diagram)*
 
-And twelve skills — ten generic, two knitting-specific that we wrote when
-we realized the model needed a stitch-math table and an error-format
-schema.
+Agent Loop in the center. It reads the spec once, then per iteration it
+hits the Model Router, parses tool calls, dispatches through the Tool
+Registry. `edit` mutates `knit.py`. `run_tests` invokes the spec test
+runner and pipes the score back.
 
-## (1:30 — 2:10) one full cycle — *(walk the flow diagram)*
+Three safety nets: a **Cycle Detector** that prunes when the model spins,
+**Auto-Compaction** that squashes old tool results past 60K characters, and
+a **Thinking-Nudge** that forces a tool call when the model narrates
+without acting.
 
-Here's one full cycle. The **Agent Loop** in the center reads the **Hidden
-Spec** once, then on every iteration it asks the **Model Router** — Cerebras
-first, Ollama if Cerebras 429s. The model returns tool calls. The loop
-dispatches them through the **Tool Registry**: `edit` mutates `solution/knit.py`,
-`run_tests` invokes the spec test runner and pipes the score back.
+Everything logs to `agent_logs/`. Every iteration auto-commits. And from
+outside, a **Watchdog** restarts the agent on death, restores the best
+`knit.py` from git when the score regresses, and pushes every ten minutes.
 
-Three safety nets watch the loop: the **Cycle Detector** prunes the context
-when the model spins, **Auto-Compaction** squashes old tool results when the
-prompt grows past sixty thousand characters, and the **Thinking-Nudge** forces
-a tool call when the model just narrates without acting.
+## (2:00 — 2:40) the journey
 
-Everything funnels into the **Logger** under `agent_logs/`, and every
-iteration ends in an **Auto-Commit**. From outside the process, the
-**Watchdog** (a bash loop) restarts the agent if it dies, restores the best
-`knit.py` from git when the score regresses, and pushes to GitHub every ten
-minutes.
+Twenty thirty: three out of one fifty. Twenty-two sixteen: fifty-one.
+Midnight: cloud peaked at seventy-six — then one bad edit dropped us to
+three. We restored from git history. By morning, Cerebras brought us to
+seventy-seven; the knitting-domain skills we wrote at ten a.m. pushed us
+to **seventy-nine**.
 
-## (2:10 — 3:00) the journey
+In between: **906 decisions, 808 Cerebras cooldowns, 621 nudges, 199
+compactions, 23 watchdog restarts, four total cloud-outage events.** The
+loop kept going through all of it.
 
-The hidden task was a Knitting Compiler — Python CLI, parse a DSL,
-expand repeats, simulate stitch counts, emit one deterministic JSON.
+## (2:40 — 3:20) hidden tests, honest
 
-At 20:30 we had 3 out of 150. At 22:16, basic parsing was working — 51.
-At midnight, cloud peaked at 76 — then a single bad edit regressed us
-back to 3. We restored from git history. By 9:54 this morning, Cerebras's
-free-tier Qwen3-235B brought us to 77, and at 10:20 we hit our peak: 79.
+Thirty-one out of one hundred. Lower than public — and we know exactly
+why.
 
-In between, the agent burned through 906 logged decisions, 808 Cerebras
-rate-limit cooldowns, 621 "thinking-without-action" nudges, 199 context
-auto-compactions, 23 watchdog restarts, and 4 events where every single
-cloud provider was 429-ing simultaneously. The loop kept going through
-all of it.
-
-## (3:00 — 3:50) hidden tests, honest
-
-Hidden was 31 out of 100. Lower than public, and we know exactly why.
-
-`boundary_stress_valid`: 14 out of 15. The math holds at scale.
-
-`compositional_valid_patterns`: 6 out of 30. **All twenty-four failures
-look identical: "expected N, got N plus 1."** A systematic off-by-one
-in one stitch operation. One line of code in `knit.py`. If the agent
-had pointed itself at that one cluster, it's plus-twenty-four hidden
-points in five minutes.
+`compositional_valid_patterns`: six out of thirty. **All twenty-four
+failures show the same off-by-one in one stitch operation.** One line of
+code. Plus-twenty-four hidden points if the agent had pointed at it.
 
 `edge_policy` and `interaction_effect_invalid_patterns`: zero and zero.
-Same root cause as public level five and six — the error-emission
-pipeline never converged on the canonical `{type, code, line, row}`
-schema. Another 35 points sitting on the table.
+Same root cause as our weak public error-handling categories. Another
+thirty-five points sitting on the table.
 
-The failures aren't random. They're identifiable. With one more grind
-window we close them.
+The failures aren't random. They're identifiable.
 
-## (3:50 — 4:30) what worked, what we'd change
+## (3:20 — 3:50) close
 
-What worked: per-iteration auto-commit made git log a play-by-play.
-The hardened `edit` invariants stopped silent overwrites.
-Three-tier failover kept the loop alive through 808 cooldowns.
-The watchdog *restored the best solution from history* twice when
-the model overwrote it with garbage.
-
-What we'd change: build a `verify_score` tool that refuses `submit_done`
-when score is too low; pull the high-water-mark snapshot logic
-**into** the agent loop instead of an external bash watchdog; and write
-the knitting-domain skills earlier instead of at 10am.
-
-## (4:30 — 5:00) close
-
-We didn't win on score. We won on process discipline.
+We didn't win on score. We won on process.
 
 The agent restarted itself twenty-three times. It compacted its own
-context 199 times. It noticed itself in a loop eleven times and pruned.
-It survived every cloud provider failing at the same time and kept
-iterating. And it never lied — every intervention is timestamped in
-the log.
+context one hundred and ninety-nine times. It noticed itself in a loop
+eleven times and pruned. It survived every cloud provider failing
+simultaneously. And every intervention is timestamped in the log.
 
-The repo is *github dot com slash Hackat-on-Winners slash Agent zero zero seven*.
-The agent is the project.
+Repo: *github dot com slash Hackat-on-Winners slash Agent zero zero
+seven*.
 
-Thank you.
+**The agent is the project.** Thank you.
