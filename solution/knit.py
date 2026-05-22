@@ -15,45 +15,82 @@ def parse_knit_file(file_path):
     
     for line in lines:
         if line.startswith('pattern "'):
-            pattern_name = line.split('"')[1]
+            pattern_name = line.split('pattern "', 1)[1].rstrip('"')
         elif line.startswith('cast_on '):
-            cast_on = int(line.split()[1])
+            cast_on = int(line.split('cast_on ')[1])
         elif line.startswith('row '):
             # Parse row definition
-            # Example: row 1: k1, p1, k1
-            parts = line.split(':', 1)
-            if len(parts) == 2:
-                row_num = int(parts[0].split()[1])
-                content = parts[1].strip()
-                rows.append({'row_number': row_num, 'content': content})
+            row_match = re.match(r'row ([0-9]+): (.+)', line)
+            if row_match:
+                row_number = int(row_match.group(1))
+                row_content = row_match.group(2)
+                rows.append((row_number, row_content))
     
-    return pattern_name, cast_on, rows, errors
+    # Process rows to expand repeats
+    expanded_rows = []
+    current_stitch_count = cast_on
+    
+    for row_num, row_content in rows:
+        # Handle bracketed repeats
+        expanded_content = expand_bracket_repeats(row_content)
+        
+        # Count stitches in expanded content
+        stitch_count = count_stitches(expanded_content)
+        
+        # Create expanded row structure
+        expanded_row = {
+            "start_stitches": current_stitch_count,
+            "end_stitches": current_stitch_count + stitch_count,
+            "expanded_row_index": len(expanded_rows),
+            "source_row": row_num,
+            "instructions": expanded_content
+        }
+        
+        expanded_rows.append(expanded_row)
+        current_stitch_count += stitch_count
+    
+    # Determine bind_off
+    bind_off = False
+    if rows and len(rows) > 0:
+        bind_off = True
+    
+    return {
+        "pattern_name": pattern_name,
+        "cast_on": cast_on,
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "expanded_rows": expanded_rows,
+        "final_stitch_count": current_stitch_count,
+        "bind_off": bind_off
+    }
+
 
 def expand_bracket_repeats(content):
-    # Handle bracket repeats like [k1, p1] x2
+    # Handle [k1, p1] x2 syntax
     bracket_pattern = r'\[(.*?)\] x(\d+)'
-    matches = re.findall(bracket_pattern, content)
-    
-    if matches:
-        # Replace bracketed repeat with expanded content
-        expanded = content
-        for match in matches:
-            inner_content, repeat_count = match
-            repeat_count = int(repeat_count)
-            expanded = expanded.replace(f'[{inner_content}] x{repeat_count}', 
-                                      f'{inner_content} ' * repeat_count)
-        return expanded.strip()
+    while re.search(bracket_pattern, content):
+        match = re.search(bracket_pattern, content)
+        if match:
+            inner_content = match.group(1)
+            repeat_count = int(match.group(2))
+            expanded = inner_content * repeat_count
+            content = content[:match.start()] + expanded + content[match.end():]
     return content
 
-def simulate_row(row_content, stitch_count):
-    # Simple simulation - count stitches
-    stitches = row_content.split(', ')
+
+def count_stitches(content):
+    # Simple stitch counting logic
     count = 0
-    for stitch in stitches:
-        if stitch.startswith('k') or stitch.startswith('p'):
-            # For simplicity, assume each stitch is 1 stitch
-            count += 1
+    # Count individual stitches like k1, p1, etc.
+    stitch_pattern = r'[a-z]+\d+'
+    matches = re.findall(stitch_pattern, content)
+    for match in matches:
+        # Extract number from stitch notation (e.g., k1 -> 1)
+        num_match = re.search(r'\d+', match)
+        if num_match:
+            count += int(num_match.group())
     return count
+
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -63,51 +100,8 @@ def main():
     input_file = sys.argv[2]
     
     try:
-        pattern_name, cast_on, rows, errors = parse_knit_file(input_file)
-        
-        # Process rows
-        expanded_rows = []
-        current_stitch_count = cast_on
-        
-        for row in rows:
-            row_number = row['row_number']
-            content = row['content']
-            
-            # Expand bracket repeats
-            expanded_content = expand_bracket_repeats(content)
-            
-            # Simulate stitch count
-            stitch_count = simulate_row(expanded_content, current_stitch_count)
-            
-            # For now, just return the row structure
-            expanded_rows.append({
-                'expanded_row_index': len(expanded_rows),
-                'source_row': row_number,
-                'start_stitches': current_stitch_count,
-                'instructions': expanded_content,
-                'end_stitches': current_stitch_count + stitch_count
-            })
-            
-            # Update stitch count
-            current_stitch_count += stitch_count
-        
-        # Determine bind_off
-        bind_off = False
-        if rows and rows[-1]['row_number'] > 0:
-            bind_off = True
-        
-        result = {
-            'pattern_name': pattern_name,
-            'cast_on': cast_on,
-            'valid': len(errors) == 0,
-            'errors': errors,
-            'expanded_rows': expanded_rows,
-            'final_stitch_count': current_stitch_count,
-            'bind_off': bind_off
-        }
-        
+        result = parse_knit_file(input_file)
         print(json.dumps(result))
-        
     except FileNotFoundError:
         print("Error: File not found", file=sys.stderr)
         sys.exit(1)
