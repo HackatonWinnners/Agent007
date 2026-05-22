@@ -34,3 +34,4 @@
 [2026-05-22 03:59:26] TEST_RUN {"score":"52/150","failingCategories":["level_01_valid_basics","level_02_stitches","level_03_brackets","level_04_row_repeats","level_05_single_errors","level_06_multi_error_recovery","level_08_stress"]}
 [2026-05-22 04:00:58] TEST_RUN {"score":"52/150","failingCategories":["level_01_valid_basics","level_02_stitches","level_03_brackets","level_04_row_repeats","level_05_single_errors","level_06_multi_error_recovery","level_08_stress"]}
 [2026-05-22 04:02:31] TEST_RUN {"score":"52/150","failingCategories":["level_01_valid_basics","level_02_stitches","level_03_brackets","level_04_row_repeats","level_05_single_errors","level_06_multi_error_recovery","level_08_stress"]}
+[2026-05-22 04:12:34] TEST_RUN {"score":"8/150","failingCategories":["level_01_valid_basics","level_02_stitches","level_03_brackets","level_04_row_repeats","level_05_single_errors","level_06_multi_error_recovery","level_07_cli_output","level_08_stress"]}
