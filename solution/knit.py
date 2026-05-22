@@ -198,7 +198,7 @@ class KnittingCompiler:
         if self.pattern_name is None:
             self.errors.append({
                 "type": "error",
-                "code": "MISSING_PATTERN_NAME",
+                "code": "MISSING_PATTERN",
                 "message": "Missing pattern name",
                 "line": None,
                 "row": None
