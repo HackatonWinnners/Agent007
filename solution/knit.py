@@ -17,10 +17,27 @@ def parse_stitch_operation(op):
         return {'stitch': stitch_type, 'count': count}
     
     # Handle single stitches like yo, k2tog, ssk, inc
-    if op in ['yo', 'k2tog', 'ssk', 'inc']:
+    if op in ['yo', 'k2tog', 'ssk', 'inc', 'dec']:
         return {'stitch': op, 'count': 1}
     
     return None
+
+def calculate_stitch_change(stitch_op):
+    """Calculate the net change in stitch count for a stitch operation"""
+    stitch_type = stitch_op['stitch']
+    count = stitch_op['count']
+    
+    # For counted stitches, they consume count stitches and produce count stitches
+    # So net change is 0
+    if stitch_type in ['k', 'p', 'yo', 'ssk', 'inc']:
+        return 0
+    
+    # For decrease stitches, they consume 2 stitches and produce 1 stitch
+    # So net change is -1
+    if stitch_type in ['k2tog', 'dec']:
+        return -1
+    
+    return 0
 
 def simulate_stitch_count(instructions, start_stitches):
     """Simulate stitch count changes for a row"""
@@ -29,14 +46,9 @@ def simulate_stitch_count(instructions, start_stitches):
     for instr in instructions:
         parsed = parse_stitch_operation(instr)
         if parsed:
-            # The key insight: for k10, it consumes 10 and produces 10, so net 0
-            # For k2tog, it consumes 2 and produces 1, so net -1
-            if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
-                # These don't change the stitch count
-                pass
-            elif parsed['stitch'] in ['k2tog', 'dec']:
-                # These reduce stitch count by 1
-                current_stitches -= 1
+            # Calculate net change
+            change = calculate_stitch_change(parsed)
+            current_stitches += change
     
     return current_stitches
 
@@ -118,10 +130,26 @@ def main():
                 })
                 continue
             
-            rows.append({
-                'row_num': row_num,
-                'instructions': instr_parts
-            })
+            # Parse each instruction
+            parsed_instructions = []
+            for instr in instr_parts:
+                parsed = parse_stitch_operation(instr)
+                if parsed is None:
+                    errors.append({
+                        'type': 'error',
+                        'code': 'INVALID_STITCH',
+                        'message': f'Invalid stitch operation: {instr}',
+                        'line': line_num,
+                        'row': row_num
+                    })
+                else:
+                    parsed_instructions.append(parsed)
+            
+            if not errors:  # Only add row if no errors in instructions
+                rows.append({
+                    'row_num': row_num,
+                    'instructions': parsed_instructions
+                })
             continue
         
         # Bind off
@@ -193,7 +221,10 @@ def main():
             current_stitches = expanded_rows[i-1]['end_stitches']
         
         # Calculate end stitches
-        end_stitches = simulate_stitch_count(row['instructions'], current_stitches)
+        end_stitches = current_stitches
+        for instr in row['instructions']:
+            change = calculate_stitch_change(instr)
+            end_stitches += change
         
         expanded_rows[i]['start_stitches'] = current_stitches
         expanded_rows[i]['end_stitches'] = end_stitches
