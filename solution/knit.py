@@ -293,6 +293,9 @@ class KnitCompiler:
             max_row = max(self.row_numbers)
             if self.cast_on_line > max_row:
                 self.add_error("CAST_ON_OUT_OF_ORDER", "Cast on appears after row declarations.", self.cast_on_line, None)
+        elif self.cast_on_line is not None and not self.row_numbers:
+            # No rows, so cast_on is valid
+            pass
         
         # Check for bind_off after rows
         if self.bind_off and self.row_numbers:
