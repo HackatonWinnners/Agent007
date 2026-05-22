@@ -74,7 +74,9 @@ const rootTools = createRegistry([
 ])
 
 const SUBAGENT_TOOLS = {
-  planner: createRegistry([readTool, loadSkillTool]),
+  // Planner returns text-only plans — giving it tools makes it spin on reads
+  // when Cerebras emits JSON-text tool calls our parser can't extract.
+  planner: createRegistry([]),
   implementer: createRegistry([readTool, editTool, writeTool, bashTool, globTool, grepTool, runTestsTool, loadSkillTool]),
   tester: createRegistry([runTestsTool]),
   failure_analyst: createRegistry([readTool, grepTool, loadSkillTool]),
