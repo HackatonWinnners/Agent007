@@ -2,7 +2,6 @@
 
 import sys
 import json
-import os
 import re
 
 def parse_stitch_operation(op):
@@ -38,14 +37,14 @@ def expand_bracketed_repeat(instruction_list):
         if isinstance(item, str) and item.startswith('['):
             # Find the matching closing bracket
             bracket_count = 1
-            j = i
+            j = i + 1
             while j < len(instruction_list) and bracket_count > 0:
                 if instruction_list[j].startswith('['):
                     bracket_count += 1
                 elif instruction_list[j].endswith(']'):
                     bracket_count -= 1
                 j += 1
-                
+            
             if bracket_count == 0:
                 # Extract the bracketed content
                 bracket_content = instruction_list[i+1:j-1]
@@ -88,7 +87,7 @@ def parse_row(row_line):
     while i < len(parts):
         part = parts[i]
         if part.startswith('[') and part.endswith(']'):
-            # Simple bracketed repeat
+            # Extract content inside brackets
             inner_content = part[1:-1]
             # Check for repeat syntax
             repeat_match = re.search(r'\s+x(\d+)$', inner_content)
@@ -110,6 +109,22 @@ def parse_row(row_line):
         'row_num': row_num,
         'instructions': expanded_parts
     }
+
+def simulate_stitch_count(instructions, start_stitches):
+    """Simulate stitch count changes for a row"""
+    current_stitches = start_stitches
+    
+    for instr in instructions:
+        parsed = parse_stitch_operation(instr)
+        if parsed:
+            # For simplicity, we'll just count the stitches
+            # In a real implementation, this would be more complex
+            if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
+                current_stitches += parsed['count']
+            elif parsed['stitch'] in ['k2tog', 'dec']:
+                current_stitches -= 1
+        
+    return current_stitches
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -245,40 +260,56 @@ def main():
     # Process rows
     expanded_rows = []
     
-    # For now, just return the rows as-is
+    # Process each row and expand brackets
     for i, row in enumerate(rows):
+        # Expand brackets in the row
+        expanded_instructions = expand_bracketed_repeat(row['instructions'])
+        
+        # Add to expanded rows
         expanded_rows.append({
             'expanded_row_index': i + 1,
             'source_row': row['row_num'],
-            'instructions': [],
+            'instructions': expanded_instructions,
             'start_stitches': cast_on if i == 0 else expanded_rows[i-1]['end_stitches'],
-            'end_stitches': cast_on if i == 0 else expanded_rows[i-1]['end_stitches']
+            'end_stitches': 0  # Will be calculated
         })
     
     # Simulate stitch counts
-    for i, row in enumerate(rows):
+    for i, row in enumerate(expanded_rows):
         if i == 0:
             current_stitches = cast_on
         else:
             current_stitches = expanded_rows[i-1]['end_stitches']
         
-        # For now, just set end_stitches to start_stitches
-        expanded_rows[i]['start_stitches'] = current_stitches
-        expanded_rows[i]['end_stitches'] = current_stitches
-        
-        # Parse instructions
+        # Calculate end stitches
+        end_stitches = current_stitches
         for instr in row['instructions']:
             parsed = parse_stitch_operation(instr)
             if parsed:
-                expanded_rows[i]['instructions'].append(parsed)
+                if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
+                    end_stitches += parsed['count']
+                elif parsed['stitch'] in ['k2tog', 'dec']:
+                    end_stitches -= 1
+        
+        expanded_rows[i]['start_stitches'] = current_stitches
+        expanded_rows[i]['end_stitches'] = end_stitches
+        
+        # Parse instructions for detailed info
+        detailed_instructions = []
+        for instr in row['instructions']:
+            parsed = parse_stitch_operation(instr)
+            if parsed:
+                detailed_instructions.append(parsed)
             else:
                 errors.append({
                     'type': 'error',
                     'code': 'UNKNOWN_STITCH',
                     'message': f'Unknown stitch {instr}.',
                     'line': line_num,
-                    'row': row['row_num']
+                    'row': row['source_row']
                 })
+        
+        expanded_rows[i]['instructions'] = detailed_instructions
     
     # Check for errors
     if errors:
