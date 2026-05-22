@@ -128,7 +128,7 @@ def main():
                 row_num = int(row_match.group(1))
                 instruction = row_match.group(2)
                 rows.append((row_num, instruction))
-            
+        
     # Validate required fields
     if not pattern_name or cast_on == 0:
         error_result = {
@@ -160,7 +160,7 @@ def main():
                 parsed_op = parse_stitch_operation(op)
                 if parsed_op:
                     parsed_ops.append(parsed_op)
-                
+        
         # Calculate stitch count
         final_stitches = current_stitches
         for op in parsed_ops:
