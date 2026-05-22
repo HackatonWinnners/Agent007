@@ -294,3 +294,5 @@
 [2026-05-22 10:05:46] DECISION {"iteration":9,"agentId":"root","summary":"Let me check one of the error test files:"}
 [2026-05-22 10:05:47] DECISION {"iteration":10,"agentId":"root","summary":"Let me read one of the error test files to understand what's expected: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_05_single_errors/pub_level_05_single_e)]"}
 [2026-05-22 10:10:22] DECISION {"iteration":11,"agentId":"root","summary":"Let me check another one: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_05_single_errors/pub_level_05_single_e)]"}
+[2026-05-22 10:10:23] DECISION {"iteration":12,"agentId":"root","summary":"Let me check the expected output for this one:"}
+[2026-05-22 10:10:24] DECISION {"iteration":13,"agentId":"root","summary":"Let me check the expected output for one of the error tests: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/expected_outputs/public/level_05_single_errors/pub_level_)]"}
