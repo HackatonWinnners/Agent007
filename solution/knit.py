@@ -83,16 +83,15 @@ class KnittingCompiler:
         
     def expand_brackets(self, instruction):
         """Expand bracketed repeats in instruction"""
-        # Find bracketed sections
-        bracket_pattern = r'\[([^\]]+)\] x(\d+)'
-        matches = list(re.finditer(bracket_pattern, instruction))
-        
-        if not matches:
-            return instruction
-        
-        # Process from right to left to maintain correct indices
+        # Handle nested brackets by repeatedly expanding until no more brackets
         expanded = instruction
-        for match in reversed(matches):
+        while True:
+            # Find the innermost bracket pattern
+            bracket_pattern = r'\[([^\[\]]+)\] x(\d+)'
+            match = re.search(bracket_pattern, expanded)
+            if not match:
+                break
+            
             bracket_content = match.group(1)
             repeat_count = int(match.group(2))
             
