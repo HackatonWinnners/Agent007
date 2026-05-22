@@ -4,97 +4,183 @@ import sys
 import json
 import re
 
-def parse_knit_file(file_path):
-    with open(file_path, 'r') as f:
-        lines = [line.strip() for line in f.readlines() if line.strip()]
-    
-    pattern_name = "Unknown Pattern"
-    cast_on = 0
-    rows = []
-    bind_off = False
-    errors = []
-    
-    for line in lines:
-        if line.startswith('pattern "'):
-            pattern_name = line.split('pattern "', 1)[1].rsplit('"', 1)[0]
-        elif line.startswith('cast_on '):
-            try:
-                cast_on = int(line.split('cast_on ')[1])
-            except ValueError:
-                errors.append(f"Invalid cast_on value: {line}")
-        elif line.startswith('row '):
-            # Parse row definition
-            row_match = re.match(r'row ([0-9]+):\s*(.*)', line)
-            if row_match:
-                row_num = int(row_match.group(1))
-                row_content = row_match.group(2)
-                rows.append((row_num, row_content))
+class KnitCompiler:
+    def __init__(self):
+        self.pattern_name = None
+        self.cast_on = None
+        self.rows = []
+        self.bind_off = False
+        self.errors = []
+        self.source_rows = {}
+        self.expanded_rows = []
+        self.final_stitch_count = None
+        
+    def parse_file(self, file_path):
+        with open(file_path, 'r') as f:
+            lines = [line.strip() for line in f.readlines() if line.strip()]
+        
+        # Parse lines
+        for i, line in enumerate(lines, 1):
+            # Remove comments
+            if '#' in line:
+                line = line.split('#', 1)[0].strip()
+            
+            if not line:
+                continue
+            
+            # Parse pattern
+            if line.startswith('pattern "'):
+                if self.pattern_name is not None:
+                    self.errors.append({
+                        "type": "error",
+                        "code": "DUPLICATE_PATTERN",
+                        "message": "Duplicate pattern declaration.",
+                        "line": i,
+                        "row": None
+                    })
+                else:
+                    try:
+                        self.pattern_name = line.split('pattern "', 1)[1].rsplit('"', 1)[0]
+                    except:
+                        self.errors.append({
+                            "type": "error",
+                            "code": "MALFORMED_PATTERN",
+                            "message": "Malformed pattern declaration.",
+                            "line": i,
+                            "row": None
+                        })
+            
+            # Parse cast_on
+            elif line.startswith('cast_on '):
+                if self.cast_on is not None:
+                    self.errors.append({
+                        "type": "error",
+                        "code": "DUPLICATE_CAST_ON",
+                        "message": "Duplicate cast_on declaration.",
+                        "line": i,
+                        "row": None
+                    })
+                else:
+                    try:
+                        value = int(line.split('cast_on ')[1])
+                        if value <= 0:
+                            raise ValueError()
+                        self.cast_on = value
+                    except:
+                        self.errors.append({
+                            "type": "error",
+                            "code": "MALFORMED_CAST_ON",
+                            "message": "Malformed cast_on declaration.",
+                            "line": i,
+                            "row": None
+                        })
+            
+            # Parse row
+            elif line.startswith('row '):
+                # Check if this is a valid row line
+                if ':' not in line:
+                    self.errors.append({
+                        "type": "error",
+                        "code": "MALFORMED_ROW",
+                        "message": "Malformed row declaration.",
+                        "line": i,
+                        "row": None
+                    })
+                else:
+                    try:
+                        row_part, content = line.split(':', 1)
+                        row_num = int(row_part.split()[1])
+                        self.source_rows[row_num] = content.strip()
+                    except:
+                        self.errors.append({
+                            "type": "error",
+                            "code": "MALFORMED_ROW",
+                            "message": "Malformed row declaration.",
+                            "line": i,
+                            "row": None
+                        })
+            
+            # Parse bind_off
+            elif line == 'bind_off':
+                if self.bind_off:
+                    self.errors.append({
+                        "type": "error",
+                        "code": "DUPLICATE_BIND_OFF",
+                        "message": "Duplicate bind_off declaration.",
+                        "line": i,
+                        "row": None
+                    })
+                else:
+                    self.bind_off = True
+            
+            # Unknown statement
             else:
-                errors.append(f"Invalid row format: {line}")
-        elif line == 'bind_off':
-            bind_off = True
-    
-    # Process rows to expand repeats
-    expanded_rows = []
-    current_stitch_count = cast_on
-    
-    for row_num, row_content in rows:
-        # Handle bracketed repeats
-        expanded_content = expand_brackets(row_content)
+                self.errors.append({
+                    "type": "error",
+                    "code": "UNKNOWN_STATEMENT",
+                    "message": "Unknown statement.",
+                    "line": i,
+                    "row": None
+                })
         
-        # Count stitches in expanded content
-        stitch_count = count_stitches(expanded_content)
+        # Validate required fields
+        if self.pattern_name is None:
+            self.errors.append({
+                "type": "error",
+                "code": "MISSING_PATTERN",
+                "message": "Missing pattern declaration.",
+                "line": None,
+                "row": None
+            })
         
-        # Create expanded row structure
-        expanded_row = {
-            "start_stitches": current_stitch_count,
-            "end_stitches": current_stitch_count + stitch_count,
-            "expanded_row_index": len(expanded_rows),
-            "source_row": row_num,
-            "instructions": expanded_content
+        if self.cast_on is None:
+            self.errors.append({
+                "type": "error",
+                "code": "MISSING_CAST_ON",
+                "message": "Missing cast_on declaration.",
+                "line": None,
+                "row": None
+            })
+        
+        # Process rows
+        self.expand_rows()
+        
+        # Calculate final stitch count
+        if self.cast_on is not None and self.expanded_rows:
+            self.final_stitch_count = self.expanded_rows[-1]["end_stitches"]
+        elif self.cast_on is not None:
+            self.final_stitch_count = self.cast_on
+        
+        return self.get_result()
+    
+    def expand_rows(self):
+        # Simple expansion for now
+        for row_num, content in self.source_rows.items():
+            # For now, just add the row as-is
+            self.expanded_rows.append({
+                "expanded_row_index": len(self.expanded_rows) + 1,
+                "source_row": row_num,
+                "instructions": [],
+                "start_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"],
+                "end_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"]
+            })
+    
+    def get_result(self):
+        valid = len(self.errors) == 0
+        if not valid:
+            self.expanded_rows = []
+            self.final_stitch_count = None
+        
+        return {
+            "pattern_name": self.pattern_name,
+            "cast_on": self.cast_on,
+            "valid": valid,
+            "errors": self.errors,
+            "expanded_rows": self.expanded_rows,
+            "final_stitch_count": self.final_stitch_count,
+            "bind_off": self.bind_off
         }
-        
-        expanded_rows.append(expanded_row)
-        current_stitch_count += stitch_count
-    
-    # Determine bind_off - it's True if explicitly declared
-    
-    return {
-        "pattern_name": pattern_name,
-        "cast_on": cast_on,
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "expanded_rows": expanded_rows,
-        "final_stitch_count": current_stitch_count,
-        "bind_off": bind_off
-    }
 
-def expand_brackets(content):
-    # Handle bracketed repeats like [k1, p1] x2
-    bracket_pattern = r'\[([^\]]+)\]\s*x(\d+)'
-    while re.search(bracket_pattern, content):
-        match = re.search(bracket_pattern, content)
-        if match:
-            inner_content = match.group(1)
-            repeat_count = int(match.group(2))
-            # Replace the bracketed content with repeated content
-            expanded = (inner_content + ", ") * repeat_count
-            expanded = expanded.rstrip(", ")
-            content = content[:match.start()] + expanded + content[match.end():]
-        else:
-            break
-    return content
-
-def count_stitches(content):
-    # Count each stitch instruction
-    stitches = 0
-    # Split by comma and space to get individual instructions
-    instructions = [inst.strip() for inst in content.split(',') if inst.strip()]
-    for instruction in instructions:
-        # Handle different stitch types
-        if instruction.startswith('k') or instruction.startswith('p') or instruction.startswith('yo') or instruction.startswith('k2tog'):
-            stitches += 1
-    return stitches
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -104,7 +190,8 @@ def main():
     input_file = sys.argv[2]
     
     try:
-        result = parse_knit_file(input_file)
+        compiler = KnitCompiler()
+        result = compiler.parse_file(input_file)
         print(json.dumps(result))
     except FileNotFoundError:
         print("Error: File not found", file=sys.stderr)
