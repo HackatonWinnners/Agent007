@@ -374,11 +374,89 @@ class KnitCompiler:
                             "content": bracket_content
                         })
                 else:
-                    # Regular instruction
-                    instructions.append({
-                        "type": "instruction",
-                        "content": part
-                    })
+                    # Regular instruction - parse stitch and count
+                    # Match pattern like 'k4', 'yo', 'p10', etc.
+                    import re
+                    match = re.match(r'^([a-zA-Z]+)(\d+)
+    
+    def expand_rows(self):
+        # Process rows in order
+        for row_num in sorted(self.source_rows.keys()):
+            content = self.source_rows[row_num]
+            instructions = self.parse_instructions(content)
+            
+            # For now, just add the row with instructions
+            self.expanded_rows.append({
+                "expanded_row_index": len(self.expanded_rows) + 1,
+                "source_row": row_num,
+                "instructions": instructions,
+                "start_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"],
+                "end_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"]
+            })
+    
+    def get_result(self):
+        valid = len(self.errors) == 0
+        if not valid:
+            self.expanded_rows = []
+            self.final_stitch_count = None
+        
+        return {
+            "pattern_name": self.pattern_name,
+            "cast_on": self.cast_on,
+            "valid": valid,
+            "errors": self.errors,
+            "expanded_rows": self.expanded_rows,
+            "final_stitch_count": self.final_stitch_count,
+            "bind_off": self.bind_off
+        }
+
+
+def main():
+    if len(sys.argv) != 3 or sys.argv[1] != 'compile':
+        print("Usage: python3 knit.py compile <input_file>", file=sys.stderr)
+        sys.exit(2)
+    
+    input_file = sys.argv[2]
+    
+    try:
+        compiler = KnitCompiler()
+        result = compiler.parse_file(input_file)
+        print(json.dumps(result))
+    except FileNotFoundError:
+        print("Error: File not found", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+, part)
+                    if match:
+                        stitch = match.group(1)
+                        count = int(match.group(2))
+                        instructions.append({
+                            "stitch": stitch,
+                            "count": count
+                        })
+                    else:
+                        # Single stitch without count (like 'yo')
+                        if part.isalpha():
+                            instructions.append({
+                                "stitch": part,
+                                "count": 1
+                            })
+                        else:
+                            # Malformed instruction
+                            self.errors.append({
+                                "type": "error",
+                                "code": "MALFORMED_ROW",
+                                "message": "Malformed row declaration.",
+                                "line": None,
+                                "row": None
+                            })
+                            return []
         except Exception as e:
             self.errors.append({
                 "type": "error",
