@@ -10,117 +10,87 @@ def parse_stitch_operation(op):
     op = op.split('#')[0].strip()
     
     # Handle counted stitches like k10, p
-    match = re.match(r'^(k|p|yo|k2tog|ssk|inc|dec|rep|bind_off|cast_on)(\d*)$', op)
+    match = re.match(r'^(k|p|yo|k2tog|ssk|inc|dec|sl|rep|rep2|rep3|rep4|rep5|rep6|rep7|rep8|rep9|rep10)(\d*)$', op)
     if not match:
         return None
     
-    op_type = match.group(1)
+    operation = match.group(1)
     count = int(match.group(2)) if match.group(2) else 1
     
     return {
-        'type': op_type,
+        'operation': operation,
         'count': count
     }
 
-def expand_brackets(row_parts):
+def expand_brackets(row_content):
     """Expand bracketed patterns like [k1, p1] x2"""
-    # Find bracketed sections
-    result = []
-    i = 0
-    while i < len(row_parts):
-        part = row_parts[i]
-        if part.startswith('[') and part.endswith(']'):
-            # Extract content between brackets
-            content = part[1:-1]
-            # Split by comma to get individual operations
-            operations = [op.strip() for op in content.split(',')]
-            # Check if there's a repeat count
-            if i + 1 < len(row_parts) and 'x' in row_parts[i + 1]:
-                repeat_count = int(row_parts[i + 1].split('x')[1])
-                # Expand the bracketed content
-                for _ in range(repeat_count):
-                    result.extend(operations)
-                i += 2  # Skip both bracketed part and repeat part
-            else:
-                result.extend(operations)
-                i += 1
-        else:
-            result.append(part)
-            i += 1
-    return result
-
-def simulate_row(row_instructions, start_stitches):
-    """Simulate a row and return the stitch count"""
-    current_stitches = start_stitches
+    # Find bracketed content
+    bracket_pattern = r'\[([^\]]+)\] x(\d+)'
+    match = re.search(bracket_pattern, row_content)
     
-    for instruction in row_instructions:
-        if instruction['type'] == 'k' or instruction['type'] == 'p':
-            # These operations don't change stitch count
-            pass
-        elif instruction['type'] == 'k2tog':
-            # This reduces stitch count by 1
-            if current_stitches >= 2:
-                current_stitches -= 1
-            else:
-                raise ValueError(f"Not enough stitches for k2tog: {current_stitches}")
-        elif instruction['type'] == 'inc':
-            # This increases stitch count by 1
-            current_stitches += 1
-        elif instruction['type'] == 'yo':
-            # This increases stitch count by 1
-            current_stitches += 1
-        elif instruction['type'] == 'ssk':
-            # This reduces stitch count by 1
-            if current_stitches >= 2:
-                current_stitches -= 1
-            else:
-                raise ValueError(f"Not enough stitches for ssk: {current_stitches}")
-        elif instruction['type'] == 'dec':
-            # This reduces stitch count by 1
-            if current_stitches >= 2:
-                current_stitches -= 1
-            else:
-                raise ValueError(f"Not enough stitches for dec: {current_stitches}")
-    
-    return current_stitches
-
-def parse_row(row_line):
-    """Parse a row line like 'row 1: k10'"""
-    # Remove comments
-    row_line = row_line.split('#')[0].strip()
-    
-    # Extract row number and instructions
-    match = re.match(r'^row\s+(\d+):\s*(.*)$', row_line)
     if not match:
-        return None
+        return row_content
     
-    row_num = int(match.group(1))
-    instructions = match.group(2)
+    # Extract the content inside brackets and repeat count
+    bracket_content = match.group(1)
+    repeat_count = int(match.group(2))
     
-    # Split instructions by comma
-    parts = [part.strip() for part in instructions.split(',')]
+    # Split the bracket content into individual operations
+    operations = [op.strip() for op in bracket_content.split(',')]
     
-    # Expand brackets
-    expanded_parts = expand_brackets(parts)
+    # Repeat the operations
+    expanded_operations = operations * repeat_count
     
-    # Parse each instruction
-    parsed_instructions = []
-    for part in expanded_parts:
-        parsed = parse_stitch_operation(part)
-        if parsed:
-            parsed_instructions.append(parsed)
-        else:
-            # If it's not a valid stitch operation, it might be a repeat
-            if part.startswith('[') and part.endswith(']'):
-                # This is a bracketed pattern
-                pass
-            else:
-                return None
+    # Replace the bracketed pattern with expanded operations
+    expanded_content = row_content.replace(match.group(0), ','.join(expanded_operations))
     
-    return {
-        'row': row_num,
-        'instructions': parsed_instructions
-    }
+    return expanded_content
+
+def simulate_row(row_content, current_stitches):
+    """Simulate a single row and return the new stitch count"""
+    # Parse the row content
+    if row_content.startswith('row '):
+        # Extract just the instructions part
+        instructions_part = row_content.split(':', 1)[1].strip()
+    else:
+        instructions_part = row_content
+    
+    # Expand brackets if present
+    expanded_content = expand_brackets(instructions_part)
+    
+    # Split into individual operations
+    operations = [op.strip() for op in expanded_content.split(',') if op.strip()]
+    
+    # Process each operation
+    stitch_change = 0
+    for op in operations:
+        parsed_op = parse_stitch_operation(op)
+        if not parsed_op:
+            return None, f"Invalid stitch operation: {op}"
+        
+        operation = parsed_op['operation']
+        count = parsed_op['count']
+        
+        if operation in ['k', 'p']:
+            # k and p don't change stitch count
+            pass
+        elif operation in ['k2tog', 'ssk']:
+            # These reduce stitch count by 1
+            stitch_change -= 1
+        elif operation in ['inc']:
+            # These increase stitch count by 1
+            stitch_change += 1
+        elif operation in ['yo']:
+            # These increase stitch count by 1
+            stitch_change += 1
+        elif operation in ['dec']:
+            # This reduces stitch count by 1
+            stitch_change -= 1
+        elif operation in ['sl']:
+            # This doesn't change stitch count
+            pass
+        
+    return current_stitches + stitch_change, None
 
 def main():
     if len(sys.argv) < 3 or sys.argv[1] != 'compile':
@@ -134,7 +104,7 @@ def main():
             lines = [line.strip() for line in f.readlines() if line.strip()]
     except FileNotFoundError:
         print(json.dumps({
-            'pattern_name': '',
+            'pattern_name': 'Unknown',
             'cast_on': 0,
             'valid': False,
             'errors': [{'type': 'error', 'code': 'FILE_NOT_FOUND', 'message': f"File not found: {input_file}", 'line': 0}]
@@ -142,104 +112,106 @@ def main():
         sys.exit(1)
     
     # Parse the file
-    pattern_name = "Unknown Pattern"
+    pattern_name = "Unknown"
     cast_on = 0
     bind_off = False
     rows = []
-    errors = []
     
     for i, line in enumerate(lines):
-        # Skip empty lines
-        if not line:
-            continue
-        
-        # Parse pattern name
-        pattern_match = re.match(r'^pattern\s+"(.*)"$', line)
-        if pattern_match:
-            pattern_name = pattern_match.group(1)
-            continue
-        
-        # Parse cast_on
-        cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
-        if cast_on_match:
-            cast_on = int(cast_on_match.group(1))
-            continue
-        
-        # Parse bind_off
-        bind_off_match = re.match(r'^bind_off$', line)
-        if bind_off_match:
+        if line.startswith('pattern '):
+            pattern_name = line.split(' ', 1)[1].strip('"')
+        elif line.startswith('cast_on '):
+            cast_on = int(line.split(' ', 1)[1])
+        elif line.startswith('bind_off'):
             bind_off = True
-            continue
-        
-        # Parse rows
-        row_match = re.match(r'^row\s+(\d+):\s*(.*)$', line)
-        if row_match:
-            row_result = parse_row(line)
-            if row_result:
-                rows.append(row_result)
-            else:
-                errors.append({
-                    'type': 'error',
-                    'code': 'INVALID_ROW',
-                    'message': f"Invalid row syntax: {line}",
-                    'line': i + 1
-                })
-            continue
-        
-        # If we get here, it's an unrecognized line
-        errors.append({
-            'type': 'error',
-            'code': 'UNRECOGNIZED_LINE',
-            'message': f"Unrecognized line: {line}",
-            'line': i + 1
+        elif line.startswith('row '):
+            rows.append(line)
+    
+    # Validate required fields
+    if cast_on == 0:
+        return json.dumps({
+            'pattern_name': pattern_name,
+            'cast_on': cast_on,
+            'valid': False,
+            'errors': [{'type': 'error', 'code': 'MISSING_CAST_ON', 'message': 'Missing cast_on instruction', 'line': 0}]
         })
     
-    # Validate that we have a pattern name and cast_on
-    if not pattern_name or cast_on == 0:
-        errors.append({
-            'type': 'error',
-            'code': 'MISSING_REQUIRED_FIELDS',
-            'message': "Pattern must have a name and cast_on value",
-            'line': 0
-        })
-    
-    # Simulate rows
+    # Process rows
     expanded_rows = []
     current_stitches = cast_on
     
-    for row in rows:
-        try:
-            # Simulate the row
-            end_stitches = simulate_row(row['instructions'], current_stitches)
+    for i, row in enumerate(rows):
+        # Parse row
+        if row.startswith('row '):
+            # Extract just the instructions part
+            instructions_part = row.split(':', 1)[1].strip()
+        else:
+            instructions_part = row
+        
+        # Expand brackets if present
+        expanded_content = expand_brackets(instructions_part)
+        
+        # Split into individual operations
+        operations = [op.strip() for op in expanded_content.split(',') if op.strip()]
+        
+        # Process each operation
+        stitch_change = 0
+        for op in operations:
+            parsed_op = parse_stitch_operation(op)
+            if not parsed_op:
+                return json.dumps({
+                    'pattern_name': pattern_name,
+                    'cast_on': cast_on,
+                    'valid': False,
+                    'errors': [{'type': 'error', 'code': 'INVALID_STITCH', 'message': f"Invalid stitch operation: {op}", 'line': i+1, 'row': i+1}]
+                })
             
-            expanded_rows.append({
-                'row': row['row'],
-                'start_stitches': current_stitches,
-                'instructions': row['instructions'],
-                'end_stitches': end_stitches
-            })
+            operation = parsed_op['operation']
+            count = parsed_op['count']
             
-            current_stitches = end_stitches
-        except Exception as e:
-            errors.append({
-                'type': 'error',
-                'code': 'ROW_SIMULATION_ERROR',
-                'message': str(e),
-                'line': 0
-            })
+            if operation in ['k', 'p']:
+                # k and p don't change stitch count
+                pass
+            elif operation in ['k2tog', 'ssk']:
+                # These reduce stitch count by 1
+                stitch_change -= 1
+            elif operation in ['inc']:
+                # These increase stitch count by 1
+                stitch_change += 1
+            elif operation in ['yo']:
+                # These increase stitch count by 1
+                stitch_change += 1
+            elif operation in ['dec']:
+                # This reduces stitch count by 1
+                stitch_change -= 1
+            elif operation in ['sl']:
+                # This doesn't change stitch count
+                pass
+        
+        # Calculate new stitch count
+        new_stitches = current_stitches + stitch_change
+        
+        # Add to expanded rows
+        expanded_rows.append({
+            'row_number': i + 1,
+            'instructions': operations,
+            'start_stitches': current_stitches,
+            'end_stitches': new_stitches
+        })
+        
+        current_stitches = new_stitches
     
-    # Build result
     result = {
         'pattern_name': pattern_name,
         'cast_on': cast_on,
-        'valid': len(errors) == 0,
-        'errors': errors,
+        'valid': True,
+        'errors': [],
         'expanded_rows': expanded_rows,
-        'final_stitch_count': current_stitches if expanded_rows else cast_on,
+        'final_stitch_count': current_stitches,
         'bind_off': bind_off
     }
     
-    print(json.dumps(result, indent=2))
+    print(json.dumps(result))
 
 if __name__ == "__main__":
     main()
