@@ -25,13 +25,14 @@ def parse_knit_file(file_path):
         elif line.startswith('row '):
             # Parse row definition
             # Example: row 1: k1, p1
-            row_match = re.match(r'row ([0-9]+):(.*)', line)
+            # Example: row 1: [k1, p1] x2
+            row_match = re.match(r'row ([0-9]+):\s*(.*)', line)
             if row_match:
                 row_number = int(row_match.group(1))
-                content = row_match.group(2).strip()
+                row_content = row_match.group(2).strip()
                 rows.append({
                     'row_number': row_number,
-                    'content': content
+                    'content': row_content
                 })
     
     return {
@@ -43,18 +44,15 @@ def parse_knit_file(file_path):
 
 def expand_bracket_repeats(row_content):
     # Handle bracket repeats like [k1, p1] x2
-    repeat_pattern = r'\[(.*?)\]\s*x\s*(\d+)'
-    matches = re.findall(repeat_pattern, row_content)
-    
-    if matches:
-        # Find the first match and expand it
-        for match in matches:
-            inner_content = match[0]
-            repeat_count = int(match[1])
-            # Replace the bracketed content with expanded version
-            expanded = ', '.join([inner_content] * repeat_count)
-            row_content = re.sub(repeat_pattern, expanded, row_content, 1)
-    
+    repeat_pattern = re.compile(r'\[([^\]]+)\]\s*x\s*(\d+)')
+    match = repeat_pattern.search(row_content)
+    if match:
+        content = match.group(1)
+        repeat_count = int(match.group(2))
+        # Expand the bracketed content
+        expanded = content * repeat_count
+        # Replace the bracketed part with expanded content
+        return row_content.replace(match.group(0), expanded)
     return row_content
 
 
@@ -70,9 +68,9 @@ def main():
         
         # Process rows
         expanded_rows = []
-        current_stitch_count = parsed['cast_on']
+        stitch_count = parsed['cast_on']
         
-        for i, row in enumerate(parsed['rows']):
+        for row in parsed['rows']:
             # Expand bracket repeats
             expanded_content = expand_bracket_repeats(row['content'])
             
@@ -80,18 +78,13 @@ def main():
             expanded_rows.append({
                 'row_number': row['row_number'],
                 'content': expanded_content,
-                'stitch_count': current_stitch_count,
+                'stitch_count': stitch_count,
                 'start_stitches': 0,
                 'end_stitches': 0,
                 'instructions': [],
                 'source_row': row['content'],
-                'expanded_row_index': i
+                'expanded_row_index': 0
             })
-            
-        # Simple bind_off logic
-        bind_off = False
-        if parsed['rows']:
-            bind_off = True  # Simple heuristic
         
         result = {
             'pattern_name': parsed['pattern_name'],
@@ -99,8 +92,8 @@ def main():
             'valid': len(parsed['errors']) == 0,
             'errors': parsed['errors'],
             'expanded_rows': expanded_rows,
-            'final_stitch_count': current_stitch_count,
-            'bind_off': bind_off
+            'final_stitch_count': stitch_count,
+            'bind_off': False
         }
         
         print(json.dumps(result))
