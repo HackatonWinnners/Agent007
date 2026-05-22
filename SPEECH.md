@@ -35,7 +35,26 @@ And twelve skills — ten generic, two knitting-specific that we wrote when
 we realized the model needed a stitch-math table and an error-format
 schema.
 
-## (1:30 — 2:30) the journey
+## (1:30 — 2:10) one full cycle — *(walk the flow diagram)*
+
+Here's one full cycle. The **Agent Loop** in the center reads the **Hidden
+Spec** once, then on every iteration it asks the **Model Router** — Cerebras
+first, Ollama if Cerebras 429s. The model returns tool calls. The loop
+dispatches them through the **Tool Registry**: `edit` mutates `solution/knit.py`,
+`run_tests` invokes the spec test runner and pipes the score back.
+
+Three safety nets watch the loop: the **Cycle Detector** prunes the context
+when the model spins, **Auto-Compaction** squashes old tool results when the
+prompt grows past sixty thousand characters, and the **Thinking-Nudge** forces
+a tool call when the model just narrates without acting.
+
+Everything funnels into the **Logger** under `agent_logs/`, and every
+iteration ends in an **Auto-Commit**. From outside the process, the
+**Watchdog** (a bash loop) restarts the agent if it dies, restores the best
+`knit.py` from git when the score regresses, and pushes to GitHub every ten
+minutes.
+
+## (2:10 — 3:00) the journey
 
 The hidden task was a Knitting Compiler — Python CLI, parse a DSL,
 expand repeats, simulate stitch counts, emit one deterministic JSON.
@@ -51,7 +70,7 @@ auto-compactions, 23 watchdog restarts, and 4 events where every single
 cloud provider was 429-ing simultaneously. The loop kept going through
 all of it.
 
-## (2:30 — 3:30) hidden tests, honest
+## (3:00 — 3:50) hidden tests, honest
 
 Hidden was 31 out of 100. Lower than public, and we know exactly why.
 
@@ -71,7 +90,7 @@ schema. Another 35 points sitting on the table.
 The failures aren't random. They're identifiable. With one more grind
 window we close them.
 
-## (3:30 — 4:20) what worked, what we'd change
+## (3:50 — 4:30) what worked, what we'd change
 
 What worked: per-iteration auto-commit made git log a play-by-play.
 The hardened `edit` invariants stopped silent overwrites.
@@ -84,7 +103,7 @@ when score is too low; pull the high-water-mark snapshot logic
 **into** the agent loop instead of an external bash watchdog; and write
 the knitting-domain skills earlier instead of at 10am.
 
-## (4:20 — 5:00) close
+## (4:30 — 5:00) close
 
 We didn't win on score. We won on process discipline.
 
