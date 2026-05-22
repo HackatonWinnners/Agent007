@@ -8,7 +8,7 @@ class KnitCompiler:
     def __init__(self):
         self.pattern_name = None
         self.cast_on = None
-        self.rows = []
+        self.rows = {}
         self.bind_off = False
         self.errors = []
         self.source_rows = {}
@@ -17,8 +17,8 @@ class KnitCompiler:
         self.cast_on_line = None
         self.pattern_line = None
         self.bind_off_line = None
-        self.row_numbers = set()
         self.row_repeats = []
+        self.row_numbers = set()
         
     def add_error(self, code, message, line=None, row=None):
         error = {
@@ -96,13 +96,13 @@ class KnitCompiler:
                 # Check for duplicate row numbers
                 if row_num in self.row_numbers:
                     self.add_error("DUPLICATE_ROW", f"Duplicate row number {row_num}.", line_num, row_num)
-                else:
-                    self.source_rows[row_num] = {
-                        "line": line_num,
-                        "instructions": instructions,
-                        "row_num": row_num
-                    }
-                    self.row_numbers.add(row_num)
+                
+                self.source_rows[row_num] = {
+                    "line": line_num,
+                    "instructions": instructions,
+                    "row_num": row_num
+                }
+                self.row_numbers.add(row_num)
                 
             except ValueError:
                 self.add_error("MALFORMED_ROW", "Invalid row number.", line_num, None)
@@ -150,7 +150,7 @@ class KnitCompiler:
         # Build expanded row sequence
         expanded_sequence = []
         
-        # Add original rows
+        # Add original rows in order
         for row_num in sorted(self.source_rows.keys()):
             expanded_sequence.append(row_num)
         
@@ -196,6 +196,7 @@ class KnitCompiler:
         stitch_count = self.cast_on
         final_stitch_count = stitch_count
         
+        # For each row, simulate the stitch count changes
         for i, row_num in enumerate(expanded_sequence):
             row_data = self.source_rows[row_num]
             instructions = self.parse_instructions(row_data["instructions"])
@@ -244,7 +245,7 @@ class KnitCompiler:
                     return stitch_count
             
             final_stitch_count = stitch_count
-            
+        
         return final_stitch_count
         
     def compile(self, filename):
@@ -293,6 +294,7 @@ class KnitCompiler:
         if len(self.errors) == 0:
             stitch_count = self.cast_on if self.cast_on is not None else 0
             
+            # Build expanded rows with proper stitch counts
             for i, row_num in enumerate(expanded_sequence):
                 row_data = self.source_rows[row_num]
                 instructions = self.parse_instructions(row_data["instructions"])
@@ -309,15 +311,40 @@ class KnitCompiler:
                 self.expanded_rows.append(expanded_row)
                 
                 # Update stitch count for next row
-                # This is a simplified version - we'll do proper simulation later
+                # We'll compute the actual end stitch count after processing
                 
             # Do proper stitch simulation
             final_stitch_count = self.simulate_stitches(expanded_sequence)
             
             # Update end_stitches in expanded rows
             if len(self.expanded_rows) > 0:
-                # This is a simplified approach - we'll fix this later
-                pass
+                # Recalculate stitch counts properly
+                current_stitch_count = self.cast_on
+                for i, row_data in enumerate(self.expanded_rows):
+                    row_num = row_data["source_row"]
+                    instructions = self.parse_instructions(self.source_rows[row_num]["instructions"])
+                    
+                    # Simulate the row to get the correct end stitch count
+                    start_stitches = current_stitch_count
+                    for instruction in instructions:
+                        stitch = instruction["stitch"]
+                        count = instruction["count"]
+                        
+                        if stitch == "k" or stitch == "p":
+                            current_stitch_count -= count
+                            current_stitch_count += count
+                        elif stitch == "yo":
+                            current_stitch_count += 1
+                        elif stitch == "k2tog" or stitch == "ssk":
+                            current_stitch_count -= 2
+                            current_stitch_count += 1
+                        elif stitch == "inc":
+                            current_stitch_count += 1
+                        elif stitch == "dec":
+                            current_stitch_count -= 2
+                            current_stitch_count += 1
+                    
+                    self.expanded_rows[i]["end_stitches"] = current_stitch_count
         else:
             final_stitch_count = None
         
