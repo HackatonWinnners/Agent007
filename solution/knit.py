@@ -34,6 +34,8 @@ def parse_instructions(instruction):
     
     for op in operations:
         op = op.strip()
+        if not op:  # Skip empty operations
+            continue
         # Match pattern like "k4" or "p3" or "k2tog" or "yo" or "inc"
         match = re.match(r'([a-zA-Z]+)(\d*)', op)
         if match:
