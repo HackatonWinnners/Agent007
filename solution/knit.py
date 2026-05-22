@@ -9,20 +9,14 @@ def parse_stitch_operation(op):
     """Parse a stitch operation like 'k1', 'p2', 'k2tog', etc."""
     # Handle simple stitch operations like k1, p1
     simple_pattern = re.compile(r'^([a-z]+)(\d*)$')
-    match = simple_pattern.match(op.strip())
+    match = simple_pattern.match(op)
     if match:
         stitch_type = match.group(1)
         count = int(match.group(2)) if match.group(2) else 1
         return {'stitch': stitch_type, 'count': count}
     
     # Handle special operations like k2tog, yo, inc
-    special_pattern = re.compile(r'^([a-z]+)$')
-    match = special_pattern.match(op.strip())
-    if match:
-        stitch_type = match.group(1)
-        return {'stitch': stitch_type, 'count': 1}
-    
-    return None
+    return {'stitch': op, 'count': 1}
 
 def expand_brackets(instruction):
     """Expand bracketed instructions like [k1, p1] x2 into repeated instructions."""
@@ -31,7 +25,6 @@ def expand_brackets(instruction):
     matches = bracket_pattern.findall(instruction)
     
     if matches:
-        # For each match, expand the bracketed content
         expanded = []
         for content, repeat_count in matches:
             # Split the content by comma to get individual operations
@@ -39,53 +32,33 @@ def expand_brackets(instruction):
             # Repeat the operations
             for _ in range(int(repeat_count)):
                 expanded.extend(operations)
-        
-        # Replace the bracketed part with expanded operations
-        result = instruction
-        for content, repeat_count in matches:
-            bracket_text = f'[{content}] x{repeat_count}'
-            result = result.replace(bracket_text, ','.join(expanded), 1)
-        
-        return result
+        return ','.join(expanded)
     
     return instruction
 
-def calculate_stitch_change(op):
-    """Calculate the change in stitch count for a given operation."""
-    if op['stitch'] in ['k', 'p']:
-        return 0  # Knit and purl don't change stitch count
-    elif op['stitch'] == 'k2tog':
-        return -1  # k2tog decreases stitch count by 1
-    elif op['stitch'] in ['yo', 'inc']:
-        return 1  # yo and inc increase stitch count by 1
-    else:
-        return 0  # Default case
-
-def simulate_row(row_instructions, initial_stitches):
-    """Simulate a row and return the final stitch count."""
+def simulate_stitch_count(instructions, initial_stitches):
+    """Simulate stitch count changes through instructions."""
     current_stitches = initial_stitches
     
-    # Parse instructions
-    instructions = []
-    for instruction in row_instructions:
-        # Expand brackets first
-        expanded = expand_brackets(instruction)
-        
-        # Split by comma to get individual operations
-        ops = [op.strip() for op in expanded.split(',')]
-        
-        for op in ops:
-            if op:
-                parsed_op = parse_stitch_operation(op)
-                if parsed_op:
-                    instructions.append(parsed_op)
-    
-    # Simulate each instruction
     for instruction in instructions:
-        change = calculate_stitch_change(instruction)
-        current_stitches += change
+        op = parse_stitch_operation(instruction)
+        stitch_type = op['stitch']
+        count = op['count']
         
-    return current_stitches, instructions
+        if stitch_type in ['k', 'p']:
+            # k and p don't change stitch count
+            pass
+        elif stitch_type == 'k2tog':
+            # k2tog decreases stitch count by 1 per occurrence
+            current_stitches -= count
+        elif stitch_type in ['yo', 'inc']:
+            # yo and inc increase stitch count by 1 per occurrence
+            current_stitches += count
+        elif stitch_type == 'bind_off':
+            # bind_off is a special case
+            pass
+        
+    return current_stitches
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
@@ -111,10 +84,10 @@ def main():
     with open(input_file, 'r') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
     
-    # Parse the pattern
     pattern_name = "Unknown"
     cast_on = 0
     rows = []
+    bind_off = False
     
     for line in lines:
         if line.startswith('pattern "'):
@@ -122,66 +95,60 @@ def main():
         elif line.startswith('cast_on '):
             cast_on = int(line.split()[1])
         elif line.startswith('row '):
-            # Extract the row number and instruction
-            row_match = re.match(r'row (\d+): (.+)', line)
-            if row_match:
-                row_num = int(row_match.group(1))
-                instruction = row_match.group(2)
-                rows.append((row_num, instruction))
-        
-    # Validate required fields
-    if not pattern_name or cast_on == 0:
+            # Extract row number and instructions
+            parts = line.split(':', 1)
+            if len(parts) == 2:
+                row_num = int(parts[0].split()[1])
+                instructions = parts[1].strip()
+                # Expand brackets
+                expanded_instructions = expand_brackets(instructions)
+                rows.append((row_num, expanded_instructions))
+        elif line == 'bind_off':
+            bind_off = True
+    
+    # Validate that we have cast_on and rows
+    if cast_on == 0:
         error_result = {
             "pattern_name": pattern_name,
             "cast_on": cast_on,
             "valid": False,
-            "errors": ["Invalid pattern definition"],
+            "errors": ["No cast_on specified"],
             "expanded_rows": [],
             "final_stitch_count": None,
-            "bind_off": False
+            "bind_off": bind_off
         }
         print(json.dumps(error_result, indent=2))
         sys.exit(1)
     
     # Process rows
     expanded_rows = []
-    current_stitches = cast_on
+    final_stitch_count = cast_on
     
-    for row_num, instruction in rows:
-        # Expand brackets
-        expanded_instruction = expand_brackets(instruction)
+    for row_num, instructions_str in rows:
+        # Split instructions by comma
+        instructions = [inst.strip() for inst in instructions_str.split(',') if inst.strip()]
         
-        # Parse instructions
-        ops = [op.strip() for op in expanded_instruction.split(',')]
-        parsed_ops = []
+        # Calculate stitch count for this row
+        start_stitches = final_stitch_count
+        end_stitches = simulate_stitch_count(instructions, start_stitches)
         
-        for op in ops:
-            if op:
-                parsed_op = parse_stitch_operation(op)
-                if parsed_op:
-                    parsed_ops.append(parsed_op)
+        # Parse instructions into operation objects
+        parsed_instructions = []
+        for instruction in instructions:
+            op = parse_stitch_operation(instruction)
+            parsed_instructions.append(op)
         
-        # Calculate stitch count
-        final_stitches = current_stitches
-        for op in parsed_ops:
-            change = calculate_stitch_change(op)
-            final_stitches += change
-        
-        # Add to expanded rows
         expanded_rows.append({
             "source_row": row_num,
             "expanded_row_index": len(expanded_rows) + 1,
-            "start_stitches": current_stitches,
-            "end_stitches": final_stitches,
-            "instructions": parsed_ops
+            "start_stitches": start_stitches,
+            "end_stitches": end_stitches,
+            "instructions": parsed_instructions
         })
         
-        current_stitches = final_stitches
+        final_stitch_count = end_stitches
     
-    # Final stitch count
-    final_stitch_count = current_stitches
-    
-    # Build result
+    # Create result
     result = {
         "pattern_name": pattern_name,
         "cast_on": cast_on,
@@ -189,7 +156,7 @@ def main():
         "errors": [],
         "expanded_rows": expanded_rows,
         "final_stitch_count": final_stitch_count,
-        "bind_off": False
+        "bind_off": bind_off
     }
     
     print(json.dumps(result, indent=2))
