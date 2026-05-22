@@ -26,106 +26,6 @@ def parse_stitch_operation(op):
     
     return None
 
-def expand_bracketed_repeat(instruction_list):
-    """Expand bracketed repeats like [k2, p2] x3 into k2, p2, k2, p2, k2, p2"""
-    result = []
-    i = 0
-    while i < len(instruction_list):
-        item = instruction_list[i]
-        
-        # Check if this is a bracketed repeat
-        if isinstance(item, str) and item.startswith('['):
-            # Find the matching closing bracket
-            bracket_count = 1
-            j = i + 1
-            while j < len(instruction_list) and bracket_count > 0:
-                if instruction_list[j].startswith('['):
-                    bracket_count += 1
-                elif instruction_list[j].endswith(']'):
-                    bracket_count -= 1
-                j += 1
-            
-            if bracket_count == 0:
-                # Extract the bracketed content
-                bracket_content = instruction_list[i+1:j-1]
-                
-                # Find the repeat count
-                repeat_str = instruction_list[j] if j < len(instruction_list) else ''
-                match = re.match(r'^x(\d+)$', repeat_str)
-                if match:
-                    repeat_count = int(match.group(1))
-                    # Expand the bracketed content
-                    for _ in range(repeat_count):
-                        result.extend(bracket_content)
-                    i = j  # Skip the processed items
-                else:
-                    # Invalid repeat syntax
-                    result.append(item)
-            else:
-                result.append(item)
-        else:
-            result.append(item)
-        i += 1
-    
-    return result
-
-def parse_row(row_line):
-    """Parse a row line like 'row 1: k10'"""
-    match = re.match(r'^row\s+(\d+)\s*:\s*(.*)$', row_line)
-    if not match:
-        return None
-    
-    row_num = int(match.group(1))
-    instructions = match.group(2)
-    
-    # Split by comma and clean up
-    parts = [part.strip() for part in instructions.split(',') if part.strip()]
-    
-    # Expand bracketed repeats
-    expanded_parts = []
-    i = 0
-    while i < len(parts):
-        part = parts[i]
-        if part.startswith('[') and part.endswith(']'):
-            # Extract content inside brackets
-            inner_content = part[1:-1]
-            # Check for repeat syntax
-            repeat_match = re.search(r'\s+x(\d+)$', inner_content)
-            if repeat_match:
-                repeat_count = int(repeat_match.group(1))
-                # Extract the instruction list without the repeat part
-                instr_list = inner_content[:repeat_match.start()].strip()
-                # Split the instruction list
-                instr_parts = [p.strip() for p in instr_list.split(',') if p.strip()]
-                # Repeat the instructions
-                for _ in range(repeat_count):
-                    expanded_parts.extend(instr_parts)
-                i += 1
-                continue
-        expanded_parts.append(part)
-        i += 1
-    
-    return {
-        'row_num': row_num,
-        'instructions': expanded_parts
-    }
-
-def simulate_stitch_count(instructions, start_stitches):
-    """Simulate stitch count changes for a row"""
-    current_stitches = start_stitches
-    
-    for instr in instructions:
-        parsed = parse_stitch_operation(instr)
-        if parsed:
-            # For simplicity, we'll just count the stitches
-            # In a real implementation, this would be more complex
-            if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
-                current_stitches += parsed['count']
-            elif parsed['stitch'] in ['k2tog', 'dec']:
-                current_stitches -= 1
-    
-    return current_stitches
-
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
         print("Usage: python knit.py compile <input_file>", file=sys.stderr)
@@ -260,56 +160,41 @@ def main():
     # Process rows
     expanded_rows = []
     
-    # Process each row and expand brackets
-    for i, row in enumerate(rows):
-        # Expand brackets in the row
-        expanded_instructions = expand_bracketed_repeat(row['instructions'])
-        
-        # Add to expanded rows
-        expanded_rows.append({
-            'expanded_row_index': i + 1,
-            'source_row': row['row_num'],
-            'instructions': expanded_instructions,
-            'start_stitches': cast_on if i == 0 else expanded_rows[i-1]['end_stitches'],
-            'end_stitches': 0  # Will be calculated
-        })
-    
     # Simulate stitch counts
-    for i, row in enumerate(expanded_rows):
-        if i == 0:
-            current_stitches = cast_on
-        else:
-            current_stitches = expanded_rows[i-1]['end_stitches']
-        
+    current_stitches = cast_on
+    for i, row in enumerate(rows):
         # Calculate end stitches
         end_stitches = current_stitches
+        
         for instr in row['instructions']:
             parsed = parse_stitch_operation(instr)
             if parsed:
+                # For each stitch type, calculate the net change
                 if parsed['stitch'] in ['k', 'p', 'yo', 'ssk', 'inc']:
+                    # These consume and produce the same number of stitches
                     end_stitches += parsed['count']
                 elif parsed['stitch'] in ['k2tog', 'dec']:
+                    # These consume 2 stitches and produce 1 stitch (net -1)
                     end_stitches -= 1
-        
-        expanded_rows[i]['start_stitches'] = current_stitches
-        expanded_rows[i]['end_stitches'] = end_stitches
-        
-        # Parse instructions for detailed info
-        detailed_instructions = []
-        for instr in row['instructions']:
-            parsed = parse_stitch_operation(instr)
-            if parsed:
-                detailed_instructions.append(parsed)
             else:
                 errors.append({
                     'type': 'error',
                     'code': 'UNKNOWN_STITCH',
                     'message': f'Unknown stitch {instr}.',
                     'line': line_num,
-                    'row': row['source_row']
+                    'row': row['row_num']
                 })
         
-        expanded_rows[i]['instructions'] = detailed_instructions
+        # Add to expanded rows
+        expanded_rows.append({
+            'expanded_row_index': i + 1,
+            'source_row': row['row_num'],
+            'instructions': row['instructions'],
+            'start_stitches': current_stitches,
+            'end_stitches': end_stitches
+        })
+        
+        current_stitches = end_stitches
     
     # Check for errors
     if errors:
