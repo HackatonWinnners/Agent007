@@ -299,11 +299,6 @@ class KnitCompiler:
             })
             self.valid = False
         
-        # Check for duplicate pattern and cast_on
-        if self.pattern_name is not None and self.pattern_name == '':
-            # This is valid, but we need to check if there are duplicates
-            pass
-        
         # Expand rows
         self._expand_rows()
         
@@ -315,7 +310,19 @@ class KnitCompiler:
     
     def _expand_rows(self):
         # Simple expansion for now
-        pass
+        # For now, just copy rows to expanded_rows
+        row_numbers = sorted(self.source_rows.keys())
+        for row_num in row_numbers:
+            if row_num == 'repeat':
+                # Handle repeat logic
+                continue
+            row_data = self.source_rows[row_num]
+            self.expanded_rows.append({
+                'row': row_num,
+                'instructions': [row_data['instructions']],
+                'start_stitches': 0,
+                'end_stitches': 0
+            })
     
     def _simulate_stitches(self):
         # Simple simulation for now
