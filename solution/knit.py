@@ -29,19 +29,16 @@ def parse_stitch_operation(op):
 def calculate_stitch_change(stitch_op):
     """Calculate the net change in stitch count for a stitch operation"""
     stitch_type = stitch_op['stitch']
-    count = stitch_op['count']
     
-    # For counted stitches (k, p) - they consume count stitches and produce count stitches
-    # So net change is 0
+    # For k, p - consume 1 stitch, produce 1 stitch (net 0)
     if stitch_type in ['k', 'p']:
         return 0
     
-    # For single stitches that don't change count
+    # For yo, ssk, inc - consume 0 stitches, produce 1 stitch (net +1)
     if stitch_type in ['yo', 'ssk', 'inc']:
-        return 0
+        return 1
     
-    # For decrease stitches - they consume 2 stitches and produce 1 stitch
-    # So net change is -1
+    # For k2tog, dec - consume 2 stitches, produce 1 stitch (net -1)
     if stitch_type in ['k2tog', 'dec']:
         return -1
     
@@ -49,7 +46,6 @@ def calculate_stitch_change(stitch_op):
 
 def expand_brackets(instructions):
     """Expand bracketed repeats in instructions"""
-    # Find bracketed patterns
     expanded = []
     i = 0
     while i < len(instructions):
@@ -58,7 +54,6 @@ def expand_brackets(instructions):
         # Check for bracketed pattern
         if instr.startswith('[') and instr.endswith(']'):
             # Extract the pattern and repeat count
-            # Format: [k1, p1] x2
             bracket_content = instr[1:-1].strip()
             
             # Find the repeat part
