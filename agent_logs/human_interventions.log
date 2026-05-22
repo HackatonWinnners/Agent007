@@ -881,3 +881,5 @@
 [2026-05-22 10:25:54] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~32s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:26:06] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~20s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:26:08] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~18s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:26:11] INTERVENTION {"type":"auto-compaction","what":"squashed 1 old tool_results to 600 chars head+tail","why":"total content ~65321 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:26:11] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~15s left after recent 429","filesAffected":[],"touchedFinalCode":false}
