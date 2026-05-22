@@ -36,8 +36,10 @@ Once public score is healthy (≥ 90), spawn `self_test_writer` to generate a py
 DO NOT rewrite the whole knit.py. The 79/150 baseline is hard-won. Use `read` + targeted `edit` on specific functions. If you must rewrite one function, copy the rest of the file verbatim.
 
 WORKFLOW DISCIPLINE
-- **First iteration**: ONLY call `read` on `solution/knit.py` to see the current 51/150 baseline. DO NOT overwrite or rewrite from scratch — improve incrementally.
-- Then read the spec (`secret_spec/SECRET_SPEC.md`) and a couple of failing tests under `secret_spec/public_tests/level_03_brackets/` and `secret_spec/public_tests/level_05_single_errors/`.
+- **Iteration 0**: call `read` on `solution/knit.py` to see the current baseline.
+- **Iteration 1**: call `run_tests` to confirm the live score and failing categories.
+- **Iteration 2**: spawn the `planner` subagent with task = "current score is N/150, breakdown: <paste run_tests output>, current knit.py is <attached>, produce a ROI-ordered 3-7 step plan for the biggest wins". The planner has access to load_skill and read. It returns a numbered plan.
+- **Iterations 3+**: execute the plan one step at a time. After EACH code change call `run_tests`. If a step regresses score, `bash` a `git reset --hard HEAD~1` and pick the next plan item.
 - After every code change, call `run_tests` (suite=public). Watch the level scoreboard for progress.
 - Fix one level at a time. Start with `level_01_valid_basics`, then `level_02_stitches`, etc. Easier levels unblock harder ones.
 - If score drops, that's a regression. Use `bash` to `git reset --hard HEAD~1` and try a different angle.

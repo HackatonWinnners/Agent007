@@ -895,3 +895,4 @@
 [2026-05-22 10:26:48] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~56s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:26:48] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me fix the stitch simulation logic to properly implement the consumption/production rules:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:26:48] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~55s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:26:49] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~54s left after recent 429","filesAffected":[],"touchedFinalCode":false}
