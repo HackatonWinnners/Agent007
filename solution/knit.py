@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import json
 import re
@@ -11,84 +9,128 @@ class KnitCompiler:
         self.rows = []
         self.bind_off = False
         self.errors = []
+        self.source_rows = []
+        self.expanded_rows = []
+        self.line_errors = {}
+        
+    def add_error(self, code, message, line=None, row=None):
+        error = {
+            "type": "error",
+            "code": code,
+            "message": message,
+            "line": line,
+            "row": row
+        }
+        self.errors.append(error)
         
     def parse_line(self, line, line_num):
         line = line.strip()
         if not line or line.startswith('#'):
             return
         
+        # Remove comments
+        if '#' in line:
+            # Handle comment logic properly
+            comment_start = line.find('#')
+            # Check if quote is open
+            quote_count = line[:comment_start].count('"')
+            if quote_count % 2 == 0:  # Not inside quotes
+                line = line[:comment_start].rstrip()
+            
+        if not line:
+            return
+        
         # Parse pattern line
-        pattern_match = re.match(r'^pattern\s+(.+)$', line)
+        pattern_match = re.match(r'^pattern\s+"(.*)"$', line)
         if pattern_match:
-            self.pattern_name = pattern_match.group(1).strip('"')
+            if self.pattern_name is not None:
+                self.add_error("DUPLICATE_PATTERN", "Duplicate pattern declaration.", line_num, None)
+            else:
+                self.pattern_name = pattern_match.group(1)
             return
         
         # Parse cast_on line
         cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
         if cast_on_match:
-            self.cast_on = int(cast_on_match.group(1))
+            if self.cast_on is not None:
+                self.add_error("DUPLICATE_CAST_ON", "Duplicate cast_on declaration.", line_num, None)
+            else:
+                self.cast_on = int(cast_on_match.group(1))
             return
         
         # Parse bind_off line
         bind_off_match = re.match(r'^bind_off$', line)
         if bind_off_match:
-            self.bind_off = True
+            if self.bind_off:
+                self.add_error("DUPLICATE_BIND_OFF", "Duplicate bind_off declaration.", line_num, None)
+            else:
+                self.bind_off = True
             return
         
         # Parse row line
-        row_match = re.match(r'^row\s+(.+)$', line)
+        row_match = re.match(r'^row\s+(\d+):\s*(.*)$', line)
         if row_match:
-            self.rows.append(row_match.group(1))
+            row_num = int(row_match.group(1))
+            instructions = row_match.group(2)
+            self.source_rows.append({
+                "line": line_num,
+                "row_number": row_num,
+                "instructions": instructions
+            })
             return
         
         # Parse repeat line
-        repeat_match = re.match(r'^repeat\s+(\d+)\s+times$', line)
+        repeat_match = re.match(r'^repeat\s+rows\s+(\d+)-(\d+)\s+x(\d+)$', line)
         if repeat_match:
-            self.rows.append(f'repeat {repeat_match.group(1)} times')
+            self.source_rows.append({
+                "line": line_num,
+                "type": "repeat",
+                "start": int(repeat_match.group(1)),
+                "end": int(repeat_match.group(2)),
+                "count": int(repeat_match.group(3))
+            })
             return
         
-        self.errors.append(f"Invalid syntax on line {line_num}: {line}")
+        self.add_error("UNKNOWN_STATEMENT", "Unknown statement.", line_num, None)
         
     def compile(self, filename):
         try:
             with open(filename, 'r') as f:
                 lines = f.readlines()
         except Exception as e:
-            self.errors.append(f"Error reading file: {str(e)}")
+            self.add_error("UNKNOWN_STATEMENT", f"Error reading file: {str(e)}", None, None)
             self.print_result()
             return
         
+        # Parse all lines
         for i, line in enumerate(lines, 1):
             self.parse_line(line, i)
         
         # Validate required fields
-        if not self.pattern_name:
-            self.errors.append("Missing pattern name")
-        if self.cast_on is None:
-            self.errors.append("Missing cast_on count")
+        if self.pattern_name is None:
+            self.add_error("MISSING_PATTERN", "Missing pattern declaration.", None, None)
         
-        # Simulate rows
-        self.simulate_rows()
+        if self.cast_on is None:
+            self.add_error("MISSING_CAST_ON", "Missing cast_on declaration.", None, None)
+        
+        # Process rows
+        self.process_rows()
+        
+        # Simulate stitch counts
+        self.simulate_stitches()
         
         self.print_result()
         
-    def simulate_rows(self):
-        # For now, just simulate basic stitch counts
-        if not self.rows:
-            return
+    def process_rows(self):
+        # Simple processing for now
+        pass
         
-        # Simple simulation - just track stitch count
-        stitch_count = self.cast_on
-        self.expanded_rows = []
-        
-        for i, row in enumerate(self.rows):
-            # For now, just track the stitch count
-            self.expanded_rows.append({
-                "row_number": i + 1,
-                "start_stitches": stitch_count,
-                "end_stitches": stitch_count,
-                "stitch_operations": row
-            })
+    def simulate_stitches(self):
+        # Simple simulation
+        if self.cast_on is not None:
+            self.final_stitch_count = self.cast_on
+        else:
+            self.final_stitch_count = None
         
     def print_result(self):
         result = {
@@ -96,8 +138,8 @@ class KnitCompiler:
             "cast_on": self.cast_on,
             "valid": len(self.errors) == 0,
             "errors": self.errors,
-            "expanded_rows": self.expanded_rows if hasattr(self, 'expanded_rows') else [],
-            "final_stitch_count": self.cast_on if not hasattr(self, 'expanded_rows') else self.cast_on,
+            "expanded_rows": self.expanded_rows,
+            "final_stitch_count": self.final_stitch_count if hasattr(self, 'final_stitch_count') else None,
             "bind_off": self.bind_off
         }
         print(json.dumps(result))
