@@ -11,86 +11,88 @@ class KnitCompiler:
         self.rows = []
         self.bind_off = False
         self.errors = []
-        self.expanded_rows = []
         
-    def parse_line(self, line, line_num):
+    def parse_line(self, line):
         line = line.strip()
         if not line or line.startswith('#'):
-            return
+            return None
         
-        # Parse pattern line
-        pattern_match = re.match(r'^pattern\s+(.+)$', line)
-        if pattern_match:
-            self.pattern_name = pattern_match.group(1).strip('"')
-            return
+        parts = line.split()
+        if not parts:
+            return None
         
-        # Parse cast_on line
-        cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
-        if cast_on_match:
-            self.cast_on = int(cast_on_match.group(1))
-            return
+        keyword = parts[0]
         
-        # Parse bind_off line
-        bind_off_match = re.match(r'^bind_off$', line)
-        if bind_off_match:
+        if keyword == 'pattern':
+            self.pattern_name = ' '.join(parts[1:])
+        elif keyword == 'cast_on':
+            try:
+                self.cast_on = int(parts[1])
+            except (ValueError, IndexError):
+                self.errors.append(f"Invalid cast_on value: {' '.join(parts[1:])}")
+        elif keyword == 'row':
+            # Parse row definition
+            row_def = ' '.join(parts[1:])
+            self.rows.append(row_def)
+        elif keyword == 'bind_off':
             self.bind_off = True
-            return
         
-        # Parse row line
-        row_match = re.match(r'^row\s+(.+)$', line)
-        if row_match:
-            self.rows.append(row_match.group(1))
-            return
-        
-        self.errors.append(f"Invalid syntax on line {line_num}: {line}")
-        
-    def compile(self, filename):
+    def parse(self, filename):
         try:
             with open(filename, 'r') as f:
                 lines = f.readlines()
-        except Exception as e:
-            self.errors.append(f"Error reading file: {str(e)}")
-            self.print_result()
+        except IOError:
+            self.errors.append(f"Could not read file: {filename}")
             return
         
-        for i, line in enumerate(lines, 1):
-            self.parse_line(line, i)
+        for line in lines:
+            self.parse_line(line)
+        
+    def simulate_row(self, row_def, stitch_count):
+        # Simple simulation - just count stitches
+        # This is a simplified version - real implementation would be more complex
+        return stitch_count
+    
+    def expand_rows(self):
+        # For now, just return the rows as-is
+        expanded_rows = []
+        for i, row_def in enumerate(self.rows):
+            expanded_rows.append({
+                "expanded_row_index": i,
+                "instructions": row_def,
+                "source_row": i,
+                "start_stitches": self.cast_on if i == 0 else 0,
+                "end_stitches": self.cast_on if i == 0 else 0
+            })
+        return expanded_rows
+    
+    def compile(self, filename):
+        self.parse(filename)
         
         # Validate required fields
-        if not self.pattern_name:
+        if self.pattern_name is None:
             self.errors.append("Missing pattern name")
         if self.cast_on is None:
-            self.errors.append("Missing cast_on count")
+            self.errors.append("Missing cast_on value")
         
         # Simulate rows
-        self.simulate_rows()
+        expanded_rows = self.expand_rows()
         
-        self.print_result()
+        # Calculate final stitch count
+        final_stitch_count = self.cast_on
+        if expanded_rows:
+            final_stitch_count = expanded_rows[-1]["end_stitches"]
         
-    def simulate_rows(self):
-        # Simple simulation - just track stitch count
-        stitch_count = self.cast_on
-        self.expanded_rows = []
-        
-        for i, row in enumerate(self.rows):
-            # For now, just track the stitch count
-            self.expanded_rows.append({
-                "row_number": i + 1,
-                "start_stitches": stitch_count,
-                "end_stitches": stitch_count,
-                "stitch_operations": row
-            })
-    
-    def print_result(self):
         result = {
             "pattern_name": self.pattern_name,
             "cast_on": self.cast_on,
             "valid": len(self.errors) == 0,
             "errors": self.errors,
-            "expanded_rows": self.expanded_rows,
-            "final_stitch_count": self.cast_on,
+            "expanded_rows": expanded_rows,
+            "final_stitch_count": final_stitch_count,
             "bind_off": self.bind_off
         }
+        
         print(json.dumps(result))
 
 
