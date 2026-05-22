@@ -18,11 +18,9 @@ class KnitCompiler:
         self.cast_on_line = None
         self.rows_after_cast_on = False
         self.bind_off_line = None
-        self.rows_after_bind_off = False
         self.row_numbers = set()
         self.row_repeat_statements = []
         self.source_row_order = []
-        self.expanded_row_order = []
         self.valid = True
         
     def parse_file(self, file_path):
@@ -108,7 +106,7 @@ class KnitCompiler:
                         "line": i,
                         "row": None
                     })
-                
+            
                 # Check if this is a valid row line
                 if ':' not in line:
                     self.errors.append({
@@ -122,7 +120,7 @@ class KnitCompiler:
                     try:
                         row_part, content = line.split(':', 1)
                         row_num = int(row_part.split()[1])
-                        
+            
                         # Check for valid row number
                         if row_num <= 0:
                             self.errors.append({
@@ -189,7 +187,7 @@ class KnitCompiler:
                         "line": i,
                         "row": None
                     })
-                
+            
                 try:
                     # Parse repeat statement
                     parts = line.split()
@@ -204,7 +202,7 @@ class KnitCompiler:
                     else:
                         range_part = parts[2]
                         count_part = parts[4]
-                        
+            
                         # Check for valid range
                         if '-' not in range_part:
                             self.errors.append({
@@ -220,7 +218,7 @@ class KnitCompiler:
                                 start = int(start_str)
                                 end = int(end_str)
                                 count = int(count_part)
-                                
+            
                                 if start <= 0 or end <= 0 or start > end:
                                     self.errors.append({
                                         "type": "error",
@@ -376,63 +374,7 @@ class KnitCompiler:
                 else:
                     # Regular instruction - parse stitch and count
                     # Match pattern like 'k4', 'yo', 'p10', etc.
-                    import re
-                    match = re.match(r'^([a-zA-Z]+)(\d+)
-    
-    def expand_rows(self):
-        # Process rows in order
-        for row_num in sorted(self.source_rows.keys()):
-            content = self.source_rows[row_num]
-            instructions = self.parse_instructions(content)
-            
-            # For now, just add the row with instructions
-            self.expanded_rows.append({
-                "expanded_row_index": len(self.expanded_rows) + 1,
-                "source_row": row_num,
-                "instructions": instructions,
-                "start_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"],
-                "end_stitches": self.cast_on if len(self.expanded_rows) == 0 else self.expanded_rows[-1]["end_stitches"]
-            })
-    
-    def get_result(self):
-        valid = len(self.errors) == 0
-        if not valid:
-            self.expanded_rows = []
-            self.final_stitch_count = None
-        
-        return {
-            "pattern_name": self.pattern_name,
-            "cast_on": self.cast_on,
-            "valid": valid,
-            "errors": self.errors,
-            "expanded_rows": self.expanded_rows,
-            "final_stitch_count": self.final_stitch_count,
-            "bind_off": self.bind_off
-        }
-
-
-def main():
-    if len(sys.argv) != 3 or sys.argv[1] != 'compile':
-        print("Usage: python3 knit.py compile <input_file>", file=sys.stderr)
-        sys.exit(2)
-    
-    input_file = sys.argv[2]
-    
-    try:
-        compiler = KnitCompiler()
-        result = compiler.parse_file(input_file)
-        print(json.dumps(result))
-    except FileNotFoundError:
-        print("Error: File not found", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
-, part)
+                    match = re.match(r'^([a-zA-Z]+)(\d+)', part)
                     if match:
                         stitch = match.group(1)
                         count = int(match.group(2))
