@@ -1203,3 +1203,4 @@
 [2026-05-22 10:37:58] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"read_file(\"solution/knit.py\")","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:37:58] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing planner via tier chain","why":"~49s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:37:59] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"read_file(\"solution/knit.py\")","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:37:59] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~48s left after recent 429","filesAffected":[],"touchedFinalCode":false}
