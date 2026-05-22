@@ -431,3 +431,4 @@
 [2026-05-22 03:25:00] INTERVENTION {"type":"auto-compaction","what":"squashed 1 old tool_results to 600 chars head+tail","why":"total content ~61143 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 03:25:09] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me check a test that's failing with stitch count issues:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 03:25:11] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 03:25:22] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
