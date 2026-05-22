@@ -11,23 +11,29 @@ Your job:
 5. ONLY call `submit_done` after `run_tests` returns a score of **at least 140/150**. Below that, KEEP iterating. The current baseline is 51/150 — there are many tests left to fix.
 
 CURRENT STATE
-`solution/knit.py` is at 71/150 (47%) with this breakdown:
+`solution/knit.py` is at 79/150 (52.7%) with this breakdown:
   level_01_valid_basics: 18/20
   level_02_stitches: 12/25
-  level_03_brackets: 17/25  (failures on nested brackets like `[k1, p1] x2`)
+  level_03_brackets: 17/25  (nested brackets `[k1, p1] x2` mostly OK; complex cases fail)
   level_04_row_repeats: 12/20
   level_05_single_errors: 1/30  ← MASSIVE OPPORTUNITY (29 points to gain)
-  level_06_multi_error_recovery: 0/15
+  level_06_multi_error_recovery: 0/15  ← 15 points
   level_07_cli_output: 4/5
   level_08_stress: 7/10
 
-BIGGEST WINS (in priority order)
-1. **level_05_single_errors (1/30)** — error handling. Read 3 failing tests under `secret_spec/public_tests/level_05_single_errors/`, look at expected output in `secret_spec/expected_outputs/public/level_05_single_errors/*.expected.json`, see what error `type`/`code`/`line` the runner expects. The current solution likely doesn't emit errors in the right structured shape.
-2. **level_06_multi_error_recovery (0/15)** — collect multiple errors per file, sort them by line, keep going after the first error.
-3. **level_03_brackets (17/25)** — failures are on nested/complex brackets. Read tests 007-009 to see what's broken.
-4. **level_02_stitches (12/25)** — likely stitch-count math errors on yo/k2tog/ssk.
+JUDGES SCORE ON HIDDEN TESTS TOO (40% of total grade)
+Hidden tests use the same spec but combine rules more aggressively. A solution that's robust to edge cases will score better on hidden than one that's overfit to public.
 
-DO NOT rewrite the whole knit.py. The 71/150 baseline is hard-won. Use `read` + targeted `edit` on specific functions. If you must rewrite a big function, copy the rest of the file verbatim.
+BIGGEST WINS (priority order)
+1. **level_05_single_errors (1/30)** — call `load_skill("knitting-error-format")` to see the exact error JSON shape the runner compares. Most current errors are probably output with wrong field names or wrong types.
+2. **level_06_multi_error_recovery (0/15)** — accumulate errors instead of short-circuiting on first.
+3. **level_03_brackets failures (8/25 missing)** — look at tests 007-009 with nested `[[...] xN, ...] xM`.
+4. **level_02_stitches (12/25 → 25/25)** — call `load_skill("knitting-stitch-math")` for the consume/produce table per op. Fix the stitch simulator.
+
+SELF-TESTS (10% of grade)
+Once public score is healthy (≥ 90), spawn `self_test_writer` to generate a pytest suite under `solution/self_tests/`. One test file per spec rule, covering positive + boundary + malformed cases. This earns the 10% self-tests bucket AND catches edge cases that boost hidden-test resilience.
+
+DO NOT rewrite the whole knit.py. The 79/150 baseline is hard-won. Use `read` + targeted `edit` on specific functions. If you must rewrite one function, copy the rest of the file verbatim.
 
 WORKFLOW DISCIPLINE
 - **First iteration**: ONLY call `read` on `solution/knit.py` to see the current 51/150 baseline. DO NOT overwrite or rewrite from scratch — improve incrementally.
@@ -51,7 +57,13 @@ TOOL CALL RULES
 - If your previous tool call was cut off, retry in a smaller scope.
 
 TOOLS AVAILABLE
-read, write, edit, bash, glob, grep, run_tests, load_skill, submit_done.
+read, write, edit, bash, glob, grep, run_tests, load_skill, spawn_subagent, submit_done.
+
+SUBAGENT GUIDANCE (use `spawn_subagent`)
+- `failure_analyst`: when stuck after 3 failed fix attempts on a level, spawn one with the run_tests tail to get categorized hypotheses.
+- `self_test_writer`: spawn once public score ≥ 90 to fill `solution/self_tests/`.
+- `implementer`: spawn when a SPECIFIC, well-scoped sub-task can be done with a fresh context (e.g. "rewrite the error emission function").
+- Subagents have their own context window — use them to keep the root prompt small and the work focused.
 
 ENVIRONMENT
 - cwd: <%cwd%>

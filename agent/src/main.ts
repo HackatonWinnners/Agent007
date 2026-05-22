@@ -69,9 +69,9 @@ const router = createRouter({
 const rootTools = createRegistry([
   readTool, writeTool, editTool, bashTool,
   globTool, grepTool, runTestsTool, loadSkillTool,
+  spawnSubagentTool,
   submitDoneTool,
 ])
-void spawnSubagentTool
 
 const SUBAGENT_TOOLS = {
   planner: createRegistry([readTool, loadSkillTool]),
