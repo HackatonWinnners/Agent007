@@ -90,3 +90,5 @@
 [2026-05-22 09:48:36] DECISION {"iteration":8,"agentId":"root","summary":"tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_05_single_errors/pub_level_05_single_e)]"}
 [2026-05-22 09:48:36] DECISION {"iteration":9,"agentId":"root","summary":"Let me check the expected output for this test:"}
 [2026-05-22 09:48:37] DECISION {"iteration":10,"agentId":"root","summary":"tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_05_single_errors/pub_level_05_single_e)]"}
+[2026-05-22 09:48:38] DECISION {"iteration":11,"agentId":"root","summary":"Let me check the expected outputs directory:"}
+[2026-05-22 09:48:38] DECISION {"iteration":12,"agentId":"root","summary":"tools=[bash({\"cmd\":\"find /Users/madvil2/Projects/needle-agent/secret_spec -name \\\"*.expected.json\\\" | head -5\"})]"}
