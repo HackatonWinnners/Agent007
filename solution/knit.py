@@ -42,9 +42,6 @@ def parse_instructions(instruction):
             stitch_type = match.group(1)
             count = int(match.group(2)) if match.group(2) else 1
             
-            # Handle special cases for stitch count changes
-            # For example, k2tog decreases by 1 stitch per occurrence
-            # yo and inc increase by 1 stitch per occurrence
             parsed_ops.append({
                 "stitch": stitch_type,
                 "count": count
