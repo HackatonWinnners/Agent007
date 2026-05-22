@@ -21,20 +21,30 @@ def parse_stitch_operation(op):
 def expand_brackets(instruction):
     """Expand bracketed instructions like [k1, p1] x2 into repeated instructions."""
     # Handle bracket syntax: [k1, p1] x2
+    # Find all bracketed expressions
     bracket_pattern = re.compile(r'\[([^\]]+)\] x(\d+)')
-    matches = bracket_pattern.findall(instruction)
     
-    if matches:
+    # Replace all bracket expressions
+    def replace_brackets(match):
+        content = match.group(1)
+        repeat_count = int(match.group(2))
+        # Split the content by comma to get individual operations
+        operations = [op.strip() for op in content.split(',')]
+        # Repeat the operations
         expanded = []
-        for content, repeat_count in matches:
-            # Split the content by comma to get individual operations
-            operations = [op.strip() for op in content.split(',')]
-            # Repeat the operations
-            for _ in range(int(repeat_count)):
-                expanded.extend(operations)
+        for _ in range(repeat_count):
+            expanded.extend(operations)
         return ','.join(expanded)
     
-    return instruction
+    # Handle nested brackets by repeatedly applying the replacement
+    result = instruction
+    while True:
+        new_result = bracket_pattern.sub(replace_brackets, result)
+        if new_result == result:
+            break
+        result = new_result
+    
+    return result
 
 def simulate_stitch_count(instructions, initial_stitches):
     """Simulate stitch count changes through instructions."""
