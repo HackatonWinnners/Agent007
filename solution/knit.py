@@ -19,99 +19,122 @@ class KnitCompiler:
         if not line or line.startswith('#'):
             return None
         
-        # Pattern name
+        # Parse pattern name
         pattern_match = re.match(r'^pattern\s+(.+)$', line)
         if pattern_match:
             self.pattern_name = pattern_match.group(1).strip('"\'')
             return True
         
-        # Cast on
+        # Parse cast_on
         cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
         if cast_on_match:
             self.cast_on = int(cast_on_match.group(1))
             return True
         
-        # Rows
-        row_match = re.match(r'^row\s+(.+)$', line)
+        # Parse rows
+        if line.startswith('rows'):
+            return True  # Just a marker
+        
+        # Parse row definition
+        row_match = re.match(r'^(\d+)\s+(.*)$', line)
         if row_match:
-            self.rows.append(row_match.group(1))
+            row_num = int(row_match.group(1))
+            content = row_match.group(2)
+            self.rows.append((row_num, content))
             return True
         
-        # Bind off
+        # Parse bind_off
         if line == 'bind_off':
             self.bind_off = True
             return True
         
         return False
 
-    def parse(self, lines):
-        for i, line in enumerate(lines):
-            if not self.parse_line(line):
-                self.errors.append(f"Invalid syntax at line {i+1}: {line.strip()}")
+    def expand_row(self, row_num, content):
+        # Simple expansion - just return the content as-is for now
+        return content
 
-    def expand_rows(self):
-        # For now, just add the rows as they are
-        if not self.rows:
-            # If no rows, add a row with cast_on stitches
-            self.expanded_rows.append({
-                'source_row': '',
-                'start_stitches': self.cast_on,
-                'end_stitches': self.cast_on,
-                'expanded_row_index': 0,
-                'instructions': []
-            })
-        else:
-            for i, row in enumerate(self.rows):
-                self.expanded_rows.append({
-                    'source_row': row,
-                    'start_stitches': self.cast_on,
-                    'end_stitches': self.cast_on,
-                    'expanded_row_index': i,
-                    'instructions': []
-                })
+    def simulate_row(self, row_num, content, stitch_count):
+        # Simple simulation - just return the stitch count
+        return stitch_count
 
-    def simulate(self):
-        # Simple simulation - no changes
-        pass
-
-    def compile(self, filename):
+    def compile(self, file_path):
         try:
-            with open(filename, 'r') as f:
+            with open(file_path, 'r') as f:
                 lines = f.readlines()
+            
+            # Parse the file
+            for line_num, line in enumerate(lines, 1):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                
+                # Parse pattern name
+                pattern_match = re.match(r'^pattern\s+(.+)$', line)
+                if pattern_match:
+                    self.pattern_name = pattern_match.group(1).strip('"\'')
+                    continue
+                
+                # Parse cast_on
+                cast_on_match = re.match(r'^cast_on\s+(\d+)$', line)
+                if cast_on_match:
+                    self.cast_on = int(cast_on_match.group(1))
+                    continue
+                
+                # Parse rows
+                if line.startswith('rows'):
+                    continue  # Just a marker
+                
+                # Parse row definition
+                row_match = re.match(r'^(\d+)\s+(.*)$', line)
+                if row_match:
+                    row_num = int(row_match.group(1))
+                    content = row_match.group(2)
+                    self.rows.append((row_num, content))
+                    continue
+                
+                # Parse bind_off
+                if line == 'bind_off':
+                    self.bind_off = True
+                    continue
+                
+                # If we get here, it's an unrecognized line
+                self.errors.append(f"Unrecognized line {line_num}: {line}")
+                
+            # Expand rows
+            stitch_count = self.cast_on
+            for i, (row_num, content) in enumerate(self.rows):
+                expanded_content = self.expand_row(row_num, content)
+                final_stitch_count = self.simulate_row(row_num, content, stitch_count)
+                
+                # Build expanded row
+                expanded_row = {
+                    "expanded_row_index": i,
+                    "source_row": row_num,
+                    "start_stitches": stitch_count,
+                    "end_stitches": final_stitch_count,
+                    "instructions": expanded_content
+                }
+                
+                self.expanded_rows.append(expanded_row)
+                stitch_count = final_stitch_count
+                
+            # Build result
+            result = {
+                "valid": len(self.errors) == 0,
+                "errors": self.errors,
+                "final_stitch_count": stitch_count,
+                "expanded_rows": self.expanded_rows
+            }
+            
+            print(json.dumps(result))
+            
         except FileNotFoundError:
-            print(json.dumps({'errors': ['File not found']}), file=sys.stderr)
+            print("Error: File not found", file=sys.stderr)
             sys.exit(1)
         except Exception as e:
-            print(json.dumps({'errors': [f'Error reading file: {str(e)}']}), file=sys.stderr)
+            print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-
-        self.parse(lines)
-        
-        if self.errors:
-            print(json.dumps({'errors': self.errors}))
-            sys.exit(1)
-        
-        if self.pattern_name is None:
-            self.errors.append('Missing pattern name')
-        
-        if self.cast_on is None:
-            self.errors.append('Missing cast_on')
-        
-        if self.errors:
-            print(json.dumps({'errors': self.errors}))
-            sys.exit(1)
-        
-        self.expand_rows()
-        self.simulate()
-        
-        result = {
-            'pattern_name': self.pattern_name,
-            'cast_on': self.cast_on,
-            'bind_off': self.bind_off,
-            'expanded_rows': self.expanded_rows
-        }
-        
-        print(json.dumps(result))
 
 
 def main():
