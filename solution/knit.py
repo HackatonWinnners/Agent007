@@ -13,6 +13,7 @@ class KnittingCompiler:
         self.rows = []
         self.repeats = []
         self.errors = []
+        self.line_map = {}  # Map from row number to line number
         
     def parse_file(self, file_path):
         with open(file_path, 'r') as f:
@@ -99,6 +100,7 @@ class KnittingCompiler:
                     
                     try:
                         row_number = int(parts[0].split(' ')[1])
+                        self.line_map[row_number] = i  # Map row number to line number
                     except (ValueError, IndexError):
                         self.errors.append({
                             "type": "syntax",
@@ -250,11 +252,6 @@ class KnittingCompiler:
     def simulate_row(self, instruction, start_stitches, row_num):
         """Simulate a row and return the end stitch count"""
         parsed_ops = self.parse_instruction(instruction)
-        current_stitches = start_stitches
-        
-        # Track consumed and produced stitches
-        consumed = 0
-        produced = 0
         
         # Define stitch behavior
         stitch_behavior = {
@@ -271,6 +268,10 @@ class KnittingCompiler:
             's': {'consumes': 1, 'produces': 1}
         }
         
+        # Track consumed and produced stitches
+        total_consumed = 0
+        total_produced = 0
+        
         for op in parsed_ops:
             stitch_type = op["stitch"]
             count = op["count"]
@@ -280,36 +281,38 @@ class KnittingCompiler:
                     "type": "syntax",
                     "code": "E_UNKNOWN_STITCH",
                     "message": f"Unknown stitch type: {stitch_type}",
-                    "line": None,
+                    "line": self.line_map.get(row_num, None),
                     "row": row_num
                 })
                 continue
             
             behavior = stitch_behavior[stitch_type]
-            consumed += behavior['consumes'] * count
-            produced += behavior['produces'] * count
+            total_consumed += behavior['consumes'] * count
+            total_produced += behavior['produces'] * count
         
         # Check for stitch count errors
-        if consumed > start_stitches:
+        if total_consumed > start_stitches:
             self.errors.append({
                 "type": "stitch_count",
                 "code": "E_STITCH_OVERFLOW",
-                "message": f"Stitch overflow: consumed {consumed} stitches but only {start_stitches} available",
-                "line": None,
+                "message": f"Stitch overflow: consumed {total_consumed} stitches but only {start_stitches} available",
+                "line": self.line_map.get(row_num, None),
                 "row": row_num
             })
+            return start_stitches  # Return original count on overflow
         
-        if consumed < start_stitches:
+        if total_consumed < start_stitches:
             self.errors.append({
                 "type": "stitch_count",
                 "code": "E_STITCH_UNDERFLOW",
-                "message": f"Stitch underflow: consumed {consumed} stitches but needed {start_stitches}",
-                "line": None,
+                "message": f"Stitch underflow: consumed {total_consumed} stitches but needed {start_stitches}",
+                "line": self.line_map.get(row_num, None),
                 "row": row_num
             })
+            return start_stitches  # Return original count on underflow
         
         # Calculate final stitch count
-        end_stitches = start_stitches - consumed + produced
+        end_stitches = start_stitches - total_consumed + total_produced
         return end_stitches
     
     def expand_rows(self):
@@ -433,6 +436,8 @@ def main():
     
     if not result["valid"]:
         sys.exit(1)
+    else:
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
