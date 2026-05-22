@@ -144,58 +144,27 @@ class KnittingCompiler:
     def simulate_row(self, instruction, start_stitches):
         """Simulate a row and return the end stitch count"""
         parsed_ops = self.parse_instruction(instruction)
-        
-        # Track consumed and produced stitches
-        consumed = 0
-        produced = 0
-        
-        # Define stitch consumption/production rules
-        stitch_rules = {
-            'k': {'consumes': 1, 'produces': 1},
-            'p': {'consumes': 1, 'produces': 1},
-            'yo': {'consumes': 0, 'produces': 1},
-            'k2tog': {'consumes': 2, 'produces': 1},
-            'p2tog': {'consumes': 2, 'produces': 1},
-            'ssk': {'consumes': 2, 'produces': 1},
-            'kfb': {'consumes': 1, 'produces': 2},
-            'pfb': {'consumes': 1, 'produces': 2},
-            'm1': {'consumes': 0, 'produces': 1},
-            'sl': {'consumes': 1, 'produces': 1},
-            's': {'consumes': 1, 'produces': 1},
-        }
+        current_stitches = start_stitches
         
         for op in parsed_ops:
             stitch_type = op["stitch"]
             count = op["count"]
             
-            if stitch_type in stitch_rules:
-                rule = stitch_rules[stitch_type]
-                consumed += rule['consumes'] * count
-                produced += rule['produces'] * count
+            # Calculate stitch count changes
+            if stitch_type in ["k2tog", "s2k", "sk", "sl"]:
+                # These decrease stitch count by 1 per occurrence
+                current_stitches -= count
+            elif stitch_type in ["yo", "inc"]:
+                # These increase stitch count by 1 per occurrence
+                current_stitches += count
+            elif stitch_type in ["k", "p", "m1", "m1l", "m1r"]:
+                # These don't change stitch count
+                pass
             else:
                 # For unknown stitch types, we'll assume they don't change stitch count
-                consumed += 0
-                produced += 0
+                pass
         
-        # Check for stitch count errors
-        if consumed > start_stitches:
-            self.errors.append({
-                "type": "stitch_count",
-                "code": "E_STITCH_OVERFLOW",
-                "message": f"Stitch overflow: consumed {consumed} but only {start_stitches} available",
-                "line": None,
-                "row": None
-            })
-        elif consumed < start_stitches:
-            self.errors.append({
-                "type": "stitch_count",
-                "code": "E_STITCH_UNDERFLOW",
-                "message": f"Stitch underflow: consumed {consumed} but needed {start_stitches}",
-                "line": None,
-                "row": None
-            })
-        
-        return produced
+        return current_stitches
     
     def expand_rows(self):
         """Expand rows with repeats"""
