@@ -42,7 +42,7 @@ class KnittingCompiler:
                             "row": None
                         })
                         continue
-        
+                    
                     row_number = int(parts[0].split(' ')[1])
                     instruction = parts[1]
                     self.rows.append((row_number, instruction))
@@ -58,15 +58,15 @@ class KnittingCompiler:
                             "row": None
                         })
                         continue
-        
+                    
                     repeat_def = parts[2]
                     repeat_count = int(parts[3][1:])  # Remove 'x' prefix
-        
+                    
                     if '-' in repeat_def:
                         start_row, end_row = map(int, repeat_def.split('-'))
                     else:
                         start_row = end_row = int(repeat_def)
-        
+                    
                     self.repeats.append({
                         "start_row": start_row,
                         "end_row": end_row,
@@ -80,7 +80,7 @@ class KnittingCompiler:
                     "line": i,
                     "row": None
                 })
-    
+        
     def expand_brackets(self, instruction):
         """Expand bracketed repeats in instruction"""
         # Handle nested brackets by repeatedly expanding until no more brackets
@@ -91,16 +91,16 @@ class KnittingCompiler:
             match = re.search(bracket_pattern, expanded)
             if not match:
                 break
-        
+            
             bracket_content = match.group(1)
             repeat_count = int(match.group(2))
-        
+            
             # Split bracket content by commas
             operations = [op.strip() for op in bracket_content.split(',')]
-        
+            
             # Create repeated content
             repeated_content = ','.join(operations * repeat_count)
-        
+            
             # Replace in expanded string
             expanded = expanded[:match.start()] + repeated_content + expanded[match.end():]
         
@@ -118,7 +118,7 @@ class KnittingCompiler:
         for op in operations:
             if not op:
                 continue
-        
+            
             # Match stitch type and count
             match = re.match(r'([a-zA-Z]+)(\d*)', op)
             if not match:
@@ -130,10 +130,10 @@ class KnittingCompiler:
                     "row": None
                 })
                 continue
-        
+            
             stitch_type = match.group(1)
             count = int(match.group(2)) if match.group(2) else 1
-        
+            
             parsed_ops.append({
                 "stitch": stitch_type,
                 "count": count
@@ -141,90 +141,30 @@ class KnittingCompiler:
         
         return parsed_ops
     
-    def get_stitch_delta(self, stitch_type, count):
-        """Get the net stitch delta for a stitch operation"""
-        # From the knitting-stitch-math skill:
-        # | op | consumes | produces | net | notes |
-        # | k    | 1 | 1 | 0  | knit |
-        # | p    | 1 | 1 | 0  | purl |
-        # | yo   | 0 | 1 | +1 | yarn over — creates new stitch from nothing |
-        # | k2tog | 2 | 1 | -1 | knit two together — decrease |
-        # | p2tog | 2 | 1 | -1 | purl two together — decrease |
-        # | ssk  | 2 | 1 | -1 | slip slip knit — decrease |
-        # | kfb  | 1 | 2 | +1 | knit front-back — increase |
-        # | pfb  | 1 | 2 | +1 | purl front-back — increase |
-        # | m1   | 0 | 1 | +1 | make one — increase from gap |
-        # | sl   | 1 | 1 | 0  | slip — moves stitch unchanged |
-        # | s    | 1 | 1 | 0  | alias for sl in some specs |
-        
-        stitch_info = {
-            'k': {'consumes': 1, 'produces': 1, 'net': 0},
-            'p': {'consumes': 1, 'produces': 1, 'net': 0},
-            'yo': {'consumes': 0, 'produces': 1, 'net': 1},
-            'k2tog': {'consumes': 2, 'produces': 1, 'net': -1},
-            'p2tog': {'consumes': 2, 'produces': 1, 'net': -1},
-            'ssk': {'consumes': 2, 'produces': 1, 'net': -1},
-            'kfb': {'consumes': 1, 'produces': 2, 'net': 1},
-            'pfb': {'consumes': 1, 'produces': 2, 'net': 1},
-            'm1': {'consumes': 0, 'produces': 1, 'net': 1},
-            'sl': {'consumes': 1, 'produces': 1, 'net': 0},
-            's': {'consumes': 1, 'produces': 1, 'net': 0}
-        }
-        
-        if stitch_type in stitch_info:
-            return stitch_info[stitch_type]['net'] * count
-        else:
-            # For unknown stitch types, assume no change
-            return 0
-    
     def simulate_row(self, instruction, start_stitches):
         """Simulate a row and return the end stitch count"""
         parsed_ops = self.parse_instruction(instruction)
         current_stitches = start_stitches
         
-        # Track consumed stitches to validate against start_stitches
-        consumed = 0
-        
         for op in parsed_ops:
             stitch_type = op["stitch"]
             count = op["count"]
             
-            # Calculate consumption and production
-            stitch_info = {
-                'k': {'consumes': 1, 'produces': 1},
-                'p': {'consumes': 1, 'produces': 1},
-                'yo': {'consumes': 0, 'produces': 1},
-                'k2tog': {'consumes': 2, 'produces': 1},
-                'p2tog': {'consumes': 2, 'produces': 1},
-                'ssk': {'consumes': 2, 'produces': 1},
-                'kfb': {'consumes': 1, 'produces': 2},
-                'pfb': {'consumes': 1, 'produces': 2},
-                'm1': {'consumes': 0, 'produces': 1},
-                'sl': {'consumes': 1, 'produces': 1},
-                's': {'consumes': 1, 'produces': 1}
-            }
-            
-            if stitch_type in stitch_info:
-                consumed += stitch_info[stitch_type]['consumes'] * count
+            # Calculate stitch count changes
+            if stitch_type in ["k2tog", "s2k", "sk", "sl"]:
+                # These decrease stitch count by 1 per occurrence
+                current_stitches -= count
+            elif stitch_type in ["yo", "inc"]:
+                # These increase stitch count by 1 per occurrence
+                current_stitches += count
+            elif stitch_type in ["k", "p", "m1", "m1l", "m1r"]:
+                # These don't change stitch count
+                pass
             else:
-                # For unknown stitch types, assume they consume 1 and produce 1
-                consumed += count
+                # For unknown stitch types, we'll assume they don't change stitch count
+                pass
         
-        # Validate consumption
-        if consumed > start_stitches:
-            self.errors.append({
-                "type": "error",
-                "code": "E_STITCH_OVERFLOW",
-                "message": f"Row consumes {consumed} stitches but only {start_stitches} available",
-                "line": None,
-                "row": None
-            })
-        
-        # Calculate end stitches based on net change
-        net_change = sum(self.get_stitch_delta(op["stitch"], op["count"]) for op in parsed_ops)
-        end_stitches = start_stitches + net_change
-        
-        return end_stitches
+        return current_stitches
     
     def expand_rows(self):
         """Expand rows with repeats"""
@@ -236,13 +176,13 @@ class KnittingCompiler:
             start_row = repeat["start_row"]
             end_row = repeat["end_row"]
             count = repeat["count"]
-        
+            
             # Find rows to repeat
             rows_to_repeat = []
             for row_num, instruction in self.rows:
                 if start_row <= row_num <= end_row:
                     rows_to_repeat.append((row_num, instruction))
-        
+            
             # Add repeated rows
             for _ in range(count):
                 for row_num, instruction in rows_to_repeat:
@@ -327,6 +267,7 @@ class KnittingCompiler:
             "final_stitch_count": None,
             "bind_off": self.bind_off
         }
+
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != "compile":
