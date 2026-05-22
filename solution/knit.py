@@ -5,10 +5,31 @@ import json
 import os
 import re
 
+def expand_brackets(instruction):
+    """Expand bracketed instructions like [k1, p1] x2 into repeated instructions."""
+    # Handle bracket syntax: [k1, p1] x2
+    bracket_pattern = re.compile(r'\[([^\]]+)\] x(\d+)')
+    
+    def expand_match(match):
+        content = match.group(1)
+        repeat_count = int(match.group(2))
+        # Split content by comma and repeat
+        parts = [part.strip() for part in content.split(',')]
+        expanded = ','.join([','.join(parts) for _ in range(repeat_count)])
+        return expanded
+    
+    # Replace all bracket patterns
+    expanded = bracket_pattern.sub(expand_match, instruction)
+    return expanded
+
+
 def parse_instructions(instruction):
     """Parse a row instruction string into a list of stitch operations."""
+    # First expand brackets if present
+    expanded_instruction = expand_brackets(instruction)
+    
     # Split the instruction by commas to get individual operations
-    operations = instruction.split(',')
+    operations = expanded_instruction.split(',')
     parsed_ops = []
     
     for op in operations:
