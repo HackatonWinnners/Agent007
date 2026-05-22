@@ -88,9 +88,6 @@ def simulate_row(row_instructions, start_stitches):
         elif operation == 'yo':
             # yo increases stitch count by 1
             current_stitches += 1
-        
-        # For now, just return the final stitch count
-        # In a real implementation, we'd track each instruction
     
     return current_stitches
 
@@ -119,7 +116,9 @@ def main():
         if line.startswith('pattern '):
             pattern_name = line.split(' ', 1)[1].strip('"')
         elif line.startswith('cast_on '):
-            cast_on = int(line.split(' ', 1)[1])
+            # Handle comments in cast_on line
+            cast_on_line = line.split('#')[0].strip()
+            cast_on = int(cast_on_line.split(' ', 1)[1])
         elif line.startswith('row '):
             # Extract row number and instructions
             row_match = re.match(r'row (\d+):(.*)', line)
