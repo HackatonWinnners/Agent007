@@ -180,3 +180,4 @@
 [2026-05-22 02:16:10] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me fix the parsing logic to be more robust:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 02:16:11] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me run the tests to see if I've made progress:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 02:16:11] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me run the tests to see the current status:\n","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 02:16:14] INTERVENTION {"type":"cycle-detected","what":"pruned last 4 messages and forced retry","why":"identical tool calls for 3 iterations","filesAffected":[],"touchedFinalCode":false}
