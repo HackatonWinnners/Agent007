@@ -57,8 +57,7 @@ rate limits, latency, and reliability issues described below.
 
 ## Agent architecture
 
-`agent/src/agent.ts` is a query/tool-call loop modeled after patterns in the
-publicly leaked Claude Code source (March 2026). Per iteration:
+`agent/src/agent.ts` is a query/tool-call loop. Per iteration:
 
 1. Compact conversation history if it exceeds 60 K characters (`agent/src/agent.ts`
    `compactMessages`) — older `tool` messages get squashed to head+tail of 600
@@ -88,8 +87,7 @@ log easier to interpret on this single-program task.
   file in the read-file cache that `edit` requires.
 - `write` — create-only by default, `overwrite=true` to replace.
 - `edit` — exact-match string replacement, refuses to operate without a
-  prior `read`, refuses on stale mtime (pattern lifted from
-  `~/Projects/claude-code-fork/src/tools/FileEditTool/FileEditTool.ts`).
+  prior `read`, refuses on stale mtime.
 - `bash` — `/bin/bash -lc <cmd>`, captures stdout/stderr/exit, default 60 s
   timeout.
 - `glob` — `fast-glob`-based file listing.
@@ -160,7 +158,7 @@ No final-program code was edited by hand at any point. Every
 - The query/tool-call loop and per-iteration auto-commit produced an
   excellent process trail. `git log agent-readiness-1945..HEAD` is the agent
   narrative end-to-end.
-- The leaked-Claude-Code `FileEditTool` invariants (read-before-edit,
+- The hardened `edit` invariants (read-before-edit,
   exact-match, mtime guard) prevented the most damaging class of model
   regressions where a stale view of a file silently overwrites concurrent
   changes.

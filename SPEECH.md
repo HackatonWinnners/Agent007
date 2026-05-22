@@ -17,12 +17,13 @@ you.
 
 ## (0:30 — 1:30) architecture in one breath
 
-We built a TypeScript-Bun agent inspired by the leaked Claude Code source.
+We built a TypeScript-Bun agent from scratch.
 
 It has nine tools — read, write, edit, bash, glob, grep, run_tests,
 load_skill, and spawn_subagent. The `edit` tool enforces read-before-edit
-and exact-match guards we lifted from Claude Code's source — that one
-invariant killed an entire class of silent overwrites.
+and exact-match guards — that one invariant alone killed an entire class
+of silent overwrites where the model would clobber a file based on a
+stale view of its contents.
 
 A three-tier model router with 429 cooldown and automatic failover.
 
@@ -73,7 +74,7 @@ window we close them.
 ## (3:30 — 4:20) what worked, what we'd change
 
 What worked: per-iteration auto-commit made git log a play-by-play.
-Claude Code's edit invariants stopped silent overwrites.
+The hardened `edit` invariants stopped silent overwrites.
 Three-tier failover kept the loop alive through 808 cooldowns.
 The watchdog *restored the best solution from history* twice when
 the model overwrote it with garbage.

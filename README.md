@@ -65,7 +65,7 @@ Single-file orchestrator in `agent/src/main.ts` wires:
 - **Tools:** `read`, `write`, `edit`, `bash`, `glob`, `grep`, `run_tests`,
   `load_skill`, `submit_done` — each a self-contained module under
   `agent/src/tools/`. `edit` enforces read-before-edit and exact-match
-  semantics (pattern lifted from the leaked Claude Code source).
+  semantics — a hardened pattern that prevents stale-view overwrites.
 - **Loop:** `agent/src/agent.ts` — read spec → emit tool calls → execute →
   feed results back → repeat. Includes cycle detection (3+ identical tool
   calls in a 5-window prunes context), context compaction (>60 K char

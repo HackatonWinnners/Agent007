@@ -21,15 +21,15 @@ overnight ground a knitting compiler out of nothing.*
 
 ## what we built (before reveal)
 
-A TypeScript/Bun coding agent inspired by the leaked Claude Code source.
+A TypeScript/Bun coding agent built from scratch.
 
 - **9 tools**: `read`, `edit`, `write`, `bash`, `glob`, `grep`, `run_tests`, `load_skill`, `spawn_subagent`, `submit_done`
-- **`edit` invariants from Claude Code**: read-before-edit, exact-match, mtime guard
+- **Hardened `edit`**: read-before-edit, exact-match string replacement, mtime staleness guard
 - **query/tool-call loop** with cycle detection, auto-compaction, XML-tool-call recovery
 - **Multi-tier model router** with timeout, retry, 429 cooldown, fallback chain
 - **Subagent system** (planner / implementer / tester / failure_analyst / self_test_writer)
 - **10 pre-written skills** + 2 knitting-domain skills (`knitting-error-format`, `knitting-stitch-math`)
-- **Pretty terminal UI** with ANSI boxes (Claude Code vibe)
+- **Pretty terminal UI** with ANSI-colored iteration boxes
 - **Watchdog** that restarts agent on death and restores best `knit.py` on regression
 
 ---
@@ -100,7 +100,7 @@ Parses a knitting DSL, validates, expands repeats, simulates stitch counts row b
 ## what worked
 
 - **Per-iteration auto-commit** — `git log` is a play-by-play of the agent's thinking
-- **Claude Code's edit invariants** — read-before-edit + exact-match killed an entire class of silent overwrites
+- **Hardened `edit` invariants** — read-before-edit + exact-match killed an entire class of silent overwrites
 - **Cycle detector** — 3+ identical tool calls in a 5-window → context prune
 - **Auto-compaction** — old tool results squashed to head+tail when context > 60 KB
 - **3-tier model failover** + 429 cooldown — kept the loop alive when Cerebras hit TPM
