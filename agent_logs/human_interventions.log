@@ -3,3 +3,5 @@
 [2026-05-22 09:34:33] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~29s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:34:35] INTERVENTION {"type":"auto-compaction","what":"squashed 1 old tool_results to 600 chars head+tail","why":"total content ~60304 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:34:35] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~27s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:34:40] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~22s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:35:02] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me look at a few of the error test cases to understand what's expected:\n","filesAffected":[],"touchedFinalCode":false}
