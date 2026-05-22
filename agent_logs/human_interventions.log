@@ -1602,3 +1602,4 @@
 [2026-05-22 11:01:16] INTERVENTION {"type":"auto-compaction","what":"squashed 1 old tool_results to 600 chars head+tail","why":"total content ~73578 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 11:01:16] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~43s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 11:01:27] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~32s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 11:01:30] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~29s left after recent 429","filesAffected":[],"touchedFinalCode":false}
