@@ -296,3 +296,5 @@
 [2026-05-22 10:10:22] DECISION {"iteration":11,"agentId":"root","summary":"Let me check another one: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_05_single_errors/pub_level_05_single_e)]"}
 [2026-05-22 10:10:23] DECISION {"iteration":12,"agentId":"root","summary":"Let me check the expected output for this one:"}
 [2026-05-22 10:10:24] DECISION {"iteration":13,"agentId":"root","summary":"Let me check the expected output for one of the error tests: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/expected_outputs/public/level_05_single_errors/pub_level_)]"}
+[2026-05-22 10:10:26] DECISION {"iteration":14,"agentId":"root","summary":"Let me check the actual test file that should produce this error:"}
+[2026-05-22 10:10:27] DECISION {"iteration":15,"agentId":"root","summary":"Let me look at the test files for level 05: tools=[bash({\"cmd\":\"ls -la /Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_05_single_errors/\"})]"}
