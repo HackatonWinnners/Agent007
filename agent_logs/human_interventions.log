@@ -1228,3 +1228,6 @@
 [2026-05-22 10:40:53] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~44s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:40:55] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~42s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 10:40:57] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~41s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:40:58] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~39s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:45:18] INTERVENTION {"type":"fallback-failed","what":"fallback (hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL) failed, trying next tier","why":"The operation timed out.","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 10:45:18] INTERVENTION {"type":"all-providers-down","what":"all tiers failed, sleeping 30s before retrying primary","why":"The operation timed out.","filesAffected":[],"touchedFinalCode":false}
