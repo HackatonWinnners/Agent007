@@ -86,8 +86,7 @@ class KnittingCompiler:
         # Handle nested brackets by repeatedly expanding until no more brackets
         expanded = instruction
         while True:
-            # Find the innermost bracket pattern
-            # This regex finds the leftmost bracket pair
+            # Find the innermost bracket pattern (the leftmost one)
             bracket_pattern = r'\[([^\[\]]+)\] x(\d+)'
             match = re.search(bracket_pattern, expanded)
             if not match:
