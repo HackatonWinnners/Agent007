@@ -7,6 +7,9 @@ import re
 
 def parse_stitch_operation(op):
     """Parse a stitch operation like 'k1', 'p2', 'k2tog', etc."""
+    # Remove comments and whitespace
+    op = op.split('#')[0].strip()
+    
     # Handle simple stitch operations like k1, p1
     simple_pattern = re.compile(r'^([a-z]+)(\d*)$')
     match = simple_pattern.match(op)
@@ -21,7 +24,6 @@ def parse_stitch_operation(op):
 def expand_brackets(instruction):
     """Expand bracketed instructions like [k1, p1] x2 into repeated instructions."""
     # Handle bracket syntax: [k1, p1] x2
-    # Find all bracketed expressions
     bracket_pattern = re.compile(r'\[([^\]]+)\] x(\d+)')
     
     # Replace all bracket expressions
