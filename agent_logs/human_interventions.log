@@ -1966,3 +1966,4 @@
 [2026-05-22 08:43:37] INTERVENTION {"type":"auto-compaction","what":"squashed 5 old tool_results to 600 chars head+tail","why":"total content ~75714 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 08:43:38] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me look at a bracket test file:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 08:44:46] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me check what test files exist:\n","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 08:44:47] INTERVENTION {"type":"auto-compaction","what":"squashed 1 old tool_results to 600 chars head+tail","why":"total content ~65513 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
