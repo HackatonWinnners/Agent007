@@ -7,8 +7,32 @@
 - **Repo:** https://github.com/HackatonWinnners/Agent007
 - **Checkpoint tag:** `agent-readiness-1945` (set Thursday 19:45 before the
   hidden spec was released)
-- **Final commit hash:** see `git rev-parse HEAD` on the submitted branch
-- **Final public score:** see `agent_logs/test_runs.log` (last entry)
+- **Final public score: 79/150 (52.7%)** — see `agent_logs/test_runs.log`
+- **Final commit hash:** `git rev-parse HEAD` on `main`
+- **Per-level breakdown (final):**
+  | Level | Score |
+  |---|---|
+  | level_01_valid_basics | 18/20 (90%) |
+  | level_02_stitches | 12/25 (48%) |
+  | level_03_brackets | 21/25 (84%) |
+  | level_04_row_repeats | 13/20 (65%) |
+  | level_05_single_errors | 2/30 (7%) |
+  | level_06_multi_error_recovery | 0/15 |
+  | level_07_cli_output | 5/5 (100%) |
+  | level_08_stress | 8/10 (80%) |
+- **Overnight grind stats:**
+  | Metric | Value |
+  |---|---|
+  | Agent decisions logged | 906 |
+  | Commits since checkpoint | 1187 |
+  | Watchdog auto-restarts | 23 |
+  | Cerebras-cooldown events | 808 |
+  | Thinking-without-action nudges | 621 |
+  | Context auto-compactions | 199 |
+  | Provider auto-fallbacks | 66 |
+  | Cycle prunes | 11 |
+  | All-providers-down events | 4 |
+  | run_tests invocations | 42 |
 - **Hidden task:** Knitting Compiler — Python CLI that parses, validates,
   expands, and simulates `.knit` patterns; emits one deterministic JSON to
   stdout.
@@ -102,12 +126,15 @@ scores observed during the overnight run:
 - 0/150 (initial empty solution)
 - 3/150 → 9/150 (CLI scaffold)
 - 32/150 (basic parsing)
-- 51/150 (cast_on + bind_off + simple rows)
-- (transiently 69/150 and 76/150 during cloud-tier exploration before a
-  regression set us back to 51)
+- 51/150 (cast_on + bind_off + simple rows; checkpoint commit `ba4d2c4`)
+- 69/150 → 76/150 (cloud-tier exploration, before a regression set us back)
+- 71/150 (local Ollama overnight grind)
+- 77/150 (Cerebras Cloud Qwen3-235B primary kicked in)
+- **79/150 (final, peak)** — Cerebras + knitting-domain skills + planner workflow
 
-The final scoring run uses local Ollama on `solution/knit.py` restored to
-the 51/150 baseline (commit `ba4d2c4`) and grinds from there.
+The final scoring run uses commit `99abe80` (the 79/150 high-water mark)
+restored as `solution/knit.py`. Public score reproduction:
+`python3 secret_spec/test_runner/run_tests.py --compiler "python3 solution/knit.py"`.
 
 ## Human interventions
 
