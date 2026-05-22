@@ -11,13 +11,17 @@ def parse_knit_file(file_path):
     pattern_name = "Unknown Pattern"
     cast_on = 0
     rows = []
+    bind_off = False
     errors = []
     
     for line in lines:
         if line.startswith('pattern "'):
             pattern_name = line.split('pattern "', 1)[1].rsplit('"', 1)[0]
         elif line.startswith('cast_on '):
-            cast_on = int(line.split('cast_on ')[1])
+            try:
+                cast_on = int(line.split('cast_on ')[1])
+            except ValueError:
+                errors.append(f"Invalid cast_on value: {line}")
         elif line.startswith('row '):
             # Parse row definition
             row_match = re.match(r'row ([0-9]+):\s*(.*)', line)
@@ -25,6 +29,10 @@ def parse_knit_file(file_path):
                 row_num = int(row_match.group(1))
                 row_content = row_match.group(2)
                 rows.append((row_num, row_content))
+            else:
+                errors.append(f"Invalid row format: {line}")
+        elif line == 'bind_off':
+            bind_off = True
     
     # Process rows to expand repeats
     expanded_rows = []
@@ -49,10 +57,7 @@ def parse_knit_file(file_path):
         expanded_rows.append(expanded_row)
         current_stitch_count += stitch_count
     
-    # Determine bind_off
-    bind_off = False
-    if rows:
-        bind_off = True  # Simple heuristic - if there are rows, bind off
+    # Determine bind_off - it's True if explicitly declared
     
     return {
         "pattern_name": pattern_name,
@@ -65,27 +70,29 @@ def parse_knit_file(file_path):
     }
 
 def expand_brackets(content):
-    # Simple bracket expansion
-    # Example: [k1, p1] x2 becomes k1, p1, k1, p1
+    # Handle bracketed repeats like [k1, p1] x2
     bracket_pattern = r'\[([^\]]+)\]\s*x(\d+)'
     while re.search(bracket_pattern, content):
         match = re.search(bracket_pattern, content)
         if match:
             inner_content = match.group(1)
             repeat_count = int(match.group(2))
+            # Replace the bracketed content with repeated content
             expanded = (inner_content + ", ") * repeat_count
             expanded = expanded.rstrip(", ")
             content = content[:match.start()] + expanded + content[match.end():]
+        else:
+            break
     return content
 
 def count_stitches(content):
-    # Simple stitch counting
-    stitches = 0
     # Count each stitch instruction
-    for item in content.split(", "):
-        item = item.strip()
-        if item.startswith("k") or item.startswith("p"):
-            # For simplicity, assume each stitch instruction adds 1 stitch
+    stitches = 0
+    # Split by comma and space to get individual instructions
+    instructions = [inst.strip() for inst in content.split(',') if inst.strip()]
+    for instruction in instructions:
+        # Handle different stitch types
+        if instruction.startswith('k') or instruction.startswith('p') or instruction.startswith('yo') or instruction.startswith('k2tog'):
             stitches += 1
     return stitches
 
