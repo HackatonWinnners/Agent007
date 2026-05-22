@@ -717,3 +717,4 @@
 [2026-05-22 04:14:32] INTERVENTION {"type":"auto-compaction","what":"squashed 24 old tool_results to 600 chars head+tail","why":"total content ~83876 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 04:14:32] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me run the tests to see if this works:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 04:14:32] INTERVENTION {"type":"auto-compaction","what":"squashed 24 old tool_results to 600 chars head+tail","why":"total content ~84143 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 04:14:36] INTERVENTION {"type":"auto-compaction","what":"squashed 25 old tool_results to 600 chars head+tail","why":"total content ~86849 chars exceeded 60000 threshold","filesAffected":[],"touchedFinalCode":false}
