@@ -192,3 +192,4 @@
 [2026-05-22 09:50:18] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~39s left after recent 429","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:50:19] INTERVENTION {"type":"thinking-without-action","what":"assistant returned text but no tool call, injecting action nudge","why":"Let me look at the first error test file:\n","filesAffected":[],"touchedFinalCode":false}
 [2026-05-22 09:50:19] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~38s left after recent 429","filesAffected":[],"touchedFinalCode":false}
+[2026-05-22 09:50:21] INTERVENTION {"type":"primary-cooldown","what":"primary in cooldown, routing primary_coder via tier chain","why":"~36s left after recent 429","filesAffected":[],"touchedFinalCode":false}
