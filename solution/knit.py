@@ -156,6 +156,13 @@ def main():
         # This is a simplified approach
         current_stitches = row['end_stitches']
     
+    # Fix the row structure to match expected format
+    for i, row in enumerate(expanded_rows):
+        row['expanded_row_index'] = i
+        row['source_row'] = row['row_number']
+        # Remove the old row_number key
+        del row['row_number']
+    
     result = {
         'pattern_name': pattern_name,
         'cast_on': cast_on,
