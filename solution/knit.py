@@ -14,154 +14,101 @@ def parse_stitch_operation(op):
     if not match:
         return None
     
-    operation = match.group(1)
+    stitch_type = match.group(1)
     count = match.group(2)
     
-    # Default count is 1 if not specified
-    if not count:
-        count = 1
+    if count:
+        return {'type': stitch_type, 'count': int(count)}
     else:
-        count = int(count)
+        return {'type': stitch_type, 'count': 1}
+
+def parse_row(row_str):
+    """Parse a row string like 'k10' or 'k5 p5'"""
+    # Remove comments and whitespace
+    row_str = row_str.split('#')[0].strip()
     
-    return {
-        'operation': operation,
-        'count': count
-    }
-
-def expand_brackets(instructions):
-    """Expand bracketed patterns like [k1, p1] x2"""
-    # Simple approach: find bracketed patterns and expand them
-    result = []
-    i = 0
-    while i < len(instructions):
-        instr = instructions[i]
-        # Check if this is a bracketed pattern
-        if instr.startswith('[') and instr.endswith(']'):
-            # Extract the content and repeat count
-            content = instr[1:-1]
-            # Look for x<number> pattern
-            repeat_match = re.search(r'x(\d+)$', content)
-            if repeat_match:
-                repeat_count = int(repeat_match.group(1))
-                # Remove the repeat part
-                pattern_content = content[:repeat_match.start()].strip()
-                # Split the pattern content
-                pattern_parts = [part.strip() for part in pattern_content.split(',') if part.strip()]
-                # Add the pattern repeated times
-                for _ in range(repeat_count):
-                    result.extend(pattern_parts)
-            else:
-                # No repeat, just add as-is
-                result.append(instr)
-        else:
-            result.append(instr)
-        i += 1
-    return result
-
-
-def simulate_row(row_instructions, start_stitches):
-    """Simulate a row and return the end stitch count"""
-    current_stitches = start_stitches
+    if not row_str:
+        return []
     
-    for instr in row_instructions:
-        # Parse the instruction
-        parsed = parse_stitch_operation(instr)
-        if not parsed:
-            return None
-        
-        operation = parsed['operation']
-        count = parsed['count']
-        
-        # Apply stitch count changes
-        if operation in ['k', 'p']:
-            # k and p don't change stitch count
-            pass
-        elif operation == 'k2tog':
-            # k2tog reduces stitch count by 1
-            current_stitches -= 1
-        elif operation == 'ssk':
-            # ssk reduces stitch count by 1
-            current_stitches -= 1
-        elif operation == 'inc':
-            # inc increases stitch count by 1
-            current_stitches += 1
-        elif operation == 'yo':
-            # yo increases stitch count by 1
-            current_stitches += 1
-    
-    return current_stitches
-
+    operations = []
+    for op in row_str.split():
+        parsed = parse_stitch_operation(op)
+        if parsed:
+            operations.append(parsed)
+    return operations
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] != 'compile':
-        print('Usage: python3 knit.py compile <input_file>', file=sys.stderr)
+        print("Usage: python3 knit.py compile <input_file>", file=sys.stderr)
         sys.exit(2)
     
     input_file = sys.argv[2]
     
     try:
         with open(input_file, 'r') as f:
-            lines = [line.strip() for line in f.readlines() if line.strip()]
+            lines = f.readlines()
     except FileNotFoundError:
-        print('Error: File not found', file=sys.stderr)
+        print("Error: File not found", file=sys.stderr)
         sys.exit(1)
     
     # Parse the file
     pattern_name = "Unknown Pattern"
     cast_on = 0
     rows = []
-    bind_off = False
     
-    for i, line in enumerate(lines):
-        if line.startswith('pattern '):
+    for line in lines:
+        line = line.strip()
+        if line.startswith('pattern'):
             pattern_name = line.split(' ', 1)[1].strip('"')
-        elif line.startswith('cast_on '):
-            # Handle comments in cast_on line
-            cast_on_line = line.split('#')[0].strip()
-            cast_on = int(cast_on_line.split(' ', 1)[1])
-        elif line.startswith('row '):
-            # Extract row number and instructions
-            row_match = re.match(r'row (\d+):(.*)', line)
-            if row_match:
-                row_num = int(row_match.group(1))
-                instructions = [instr.strip() for instr in row_match.group(2).split(',') if instr.strip()]
-                rows.append({
-                    'row_number': row_num,
-                    'instructions': instructions
-                })
-        elif line == 'bind_off':
-            bind_off = True
+        elif line.startswith('cast_on'):
+            cast_on = int(line.split()[1])
+        elif line and not line.startswith('#'):
+            # This is a row
+            rows.append(line)
     
-    # Expand brackets in rows
-    expanded_rows = []
-    for row in rows:
-        # Expand brackets in instructions
-        expanded_instructions = expand_brackets(row['instructions'])
-        expanded_rows.append({
-            'row_number': row['row_number'],
-            'instructions': expanded_instructions,
-            'start_stitches': cast_on,  # This will be updated as we process rows
-            'end_stitches': cast_on
-        })
-    
-    # Simulate each row
+    # Simulate the pattern
     current_stitches = cast_on
-    for i, row in enumerate(expanded_rows):
-        # For now, just use the basic stitch counting
-        # In a real implementation, we'd properly simulate each row
-        row['start_stitches'] = current_stitches
-        row['end_stitches'] = current_stitches  # Placeholder
-        
-        # Update current stitches for next row
-        # This is a simplified approach
-        current_stitches = row['end_stitches']
+    expanded_rows = []
     
-    # Fix the row structure to match expected format
-    for i, row in enumerate(expanded_rows):
-        row['expanded_row_index'] = i
-        row['source_row'] = row['row_number']
-        # Remove the old row_number key
-        del row['row_number']
+    for i, row_str in enumerate(rows):
+        # Parse row operations
+        operations = parse_row(row_str)
+        
+        # Calculate stitch count
+        start_stitches = current_stitches
+        
+        # For now, just simulate basic operations
+        for op in operations:
+            if op['type'] in ['k', 'p']:
+                # Simple knit/purl - no change in stitch count
+                pass
+            elif op['type'] == 'k2tog':
+                # Decrease by 1 stitch
+                current_stitches -= 1
+            elif op['type'] == 'p2tog':
+                # Decrease by 1 stitch
+                current_stitches -= 1
+            elif op['type'] == 'bind_off':
+                # This is a special case
+                pass
+        
+        # Create expanded row
+        row = {
+            'expanded_row_index': i + 1,  # 1-based indexing
+            'source_row': row_str,
+            'instructions': operations,
+            'start_stitches': start_stitches,
+            'end_stitches': current_stitches
+        }
+        
+        expanded_rows.append(row)
+    
+    # Check for bind_off
+    bind_off = False
+    for row_str in rows:
+        if 'bind_off' in row_str:
+            bind_off = True
+            break
     
     result = {
         'pattern_name': pattern_name,
