@@ -30,6 +30,7 @@ def parse_stitch_operation(op):
 def expand_brackets(instruction):
     """Expand bracketed instructions like [k1, p1] x2 into repeated instructions."""
     # Handle bracket syntax: [k1, p1] x2
+    # First, let's handle simple brackets
     bracket_pattern = re.compile(r'\[([^\]]+)\] x(\d+)')
     
     # Replace all bracket expressions
