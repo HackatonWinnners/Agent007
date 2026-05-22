@@ -569,3 +569,4 @@
 [2026-05-22 03:48:40] DECISION {"iteration":13,"agentId":"root","summary":"Let me look at a test with rows:"}
 [2026-05-22 03:48:41] DECISION {"iteration":14,"agentId":"root","summary":"Let me look at a test with rows: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_01_valid_basics/pub_level_01_valid_bas)]"}
 [2026-05-22 03:48:42] DECISION {"iteration":15,"agentId":"root","summary":"Let me check a test that has rows: tools=[read({\"file_path\":\"/Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_01_valid_basics/pub_level_01_valid_bas)]"}
+[2026-05-22 03:48:43] DECISION {"iteration":16,"agentId":"root","summary":"Let me check a test with actual rows: tools=[bash({\"cmd\":\"head -20 /Users/madvil2/Projects/needle-agent/secret_spec/public_tests/level_01_valid_basics/pub_level_01_valid_)]"}
