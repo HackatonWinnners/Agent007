@@ -13,6 +13,7 @@ class KnittingCompiler:
         self.rows = []
         self.repeats = []
         self.errors = []
+        self.line_map = {}
         
     def parse_file(self, file_path):
         with open(file_path, 'r') as f:
@@ -20,39 +21,106 @@ class KnittingCompiler:
         
         for i, line in enumerate(lines, 1):
             line = line.strip()
-            if not line:
+            if not line or line.startswith('#'):
                 continue
             
             try:
                 if line.startswith('pattern "'):
-                    self.pattern_name = line.split('"')[1]
+                    if self.pattern_name is not None:
+                        self.errors.append({
+                            "type": "validation",
+                            "code": "E_DUPLICATE_PATTERN",
+                            "message": "Duplicate pattern name declaration",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                    
+                    # Extract pattern name
+                    match = re.match(r'pattern "(.*)"', line)
+                    if not match:
+                        self.errors.append({
+                            "type": "syntax",
+                            "code": "E_BAD_NAME",
+                            "message": "Invalid pattern name syntax",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                    
+                    self.pattern_name = match.group(1)
+                
                 elif line.startswith('cast_on '):
-                    self.cast_on = int(line.split(' ')[1])
+                    if self.cast_on is not None:
+                        self.errors.append({
+                            "type": "validation",
+                            "code": "E_DUPLICATE_CAST_ON",
+                            "message": "Duplicate cast_on declaration",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                    
+                    try:
+                        self.cast_on = int(line.split(' ')[1])
+                    except (ValueError, IndexError):
+                        self.errors.append({
+                            "type": "syntax",
+                            "code": "E_BAD_NUMBER",
+                            "message": "Invalid cast_on number",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                
                 elif line.startswith('bind_off'):
+                    if self.bind_off:
+                        self.errors.append({
+                            "type": "validation",
+                            "code": "E_TRAILING_AFTER_BIND_OFF",
+                            "message": "bind_off declared twice",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
                     self.bind_off = True
+                
                 elif line.startswith('row '):
                     # Parse row instruction
                     parts = line.split(': ', 1)
                     if len(parts) != 2:
                         self.errors.append({
-                            "type": "error",
-                            "code": "INVALID_ROW_SYNTAX",
+                            "type": "syntax",
+                            "code": "E_UNKNOWN_COMMAND",
                             "message": "Invalid row syntax",
                             "line": i,
                             "row": None
                         })
                         continue
                     
-                    row_number = int(parts[0].split(' ')[1])
+                    try:
+                        row_number = int(parts[0].split(' ')[1])
+                        self.line_map[row_number] = i
+                    except (ValueError, IndexError):
+                        self.errors.append({
+                            "type": "syntax",
+                            "code": "E_BAD_NUMBER",
+                            "message": "Invalid row number",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
+                    
                     instruction = parts[1]
                     self.rows.append((row_number, instruction))
+                
                 elif line.startswith('repeat rows '):
                     # Parse repeat instruction
                     parts = line.split(' ')
                     if len(parts) < 4:
                         self.errors.append({
-                            "type": "error",
-                            "code": "INVALID_REPEAT_SYNTAX",
+                            "type": "syntax",
+                            "code": "E_UNKNOWN_COMMAND",
                             "message": "Invalid repeat syntax",
                             "line": i,
                             "row": None
@@ -60,27 +128,67 @@ class KnittingCompiler:
                         continue
                     
                     repeat_def = parts[2]
-                    repeat_count = int(parts[3][1:])  # Remove 'x' prefix
+                    try:
+                        repeat_count = int(parts[3][1:])  # Remove 'x' prefix
+                    except (ValueError, IndexError):
+                        self.errors.append({
+                            "type": "syntax",
+                            "code": "E_REPEAT_BAD_COUNT",
+                            "message": "Invalid repeat count",
+                            "line": i,
+                            "row": None
+                        })
+                        continue
                     
                     if '-' in repeat_def:
-                        start_row, end_row = map(int, repeat_def.split('-'))
+                        try:
+                            start_row, end_row = map(int, repeat_def.split('-'))
+                        except ValueError:
+                            self.errors.append({
+                                "type": "syntax",
+                                "code": "E_REPEAT_BAD_RANGE",
+                                "message": "Invalid repeat range",
+                                "line": i,
+                                "row": None
+                            })
+                            continue
                     else:
-                        start_row = end_row = int(repeat_def)
+                        try:
+                            start_row = end_row = int(repeat_def)
+                        except ValueError:
+                            self.errors.append({
+                                "type": "syntax",
+                                "code": "E_REPEAT_BAD_RANGE",
+                                "message": "Invalid repeat range",
+                                "line": i,
+                                "row": None
+                            })
+                            continue
                     
                     self.repeats.append({
                         "start_row": start_row,
                         "end_row": end_row,
                         "count": repeat_count
                     })
+                
+                else:
+                    # Unknown command
+                    self.errors.append({
+                        "type": "syntax",
+                        "code": "E_UNKNOWN_COMMAND",
+                        "message": "Unknown command",
+                        "line": i,
+                        "row": None
+                    })
             except Exception as e:
                 self.errors.append({
-                    "type": "error",
+                    "type": "syntax",
                     "code": "PARSE_ERROR",
                     "message": f"Error parsing line {i}: {str(e)}",
                     "line": i,
                     "row": None
                 })
-        
+    
     def expand_brackets(self, instruction):
         """Expand bracketed repeats in instruction"""
         # Handle nested brackets by repeatedly expanding until no more brackets
@@ -123,8 +231,8 @@ class KnittingCompiler:
             match = re.match(r'([a-zA-Z]+)(\d*)', op)
             if not match:
                 self.errors.append({
-                    "type": "error",
-                    "code": "INVALID_STITCH_SYNTAX",
+                    "type": "syntax",
+                    "code": "E_UNKNOWN_STITCH",
                     "message": f"Invalid stitch syntax: {op}",
                     "line": None,
                     "row": None
@@ -141,30 +249,71 @@ class KnittingCompiler:
         
         return parsed_ops
     
-    def simulate_row(self, instruction, start_stitches):
+    def simulate_row(self, instruction, start_stitches, row_num):
         """Simulate a row and return the end stitch count"""
         parsed_ops = self.parse_instruction(instruction)
-        current_stitches = start_stitches
+        
+        # Define stitch behavior
+        stitch_behavior = {
+            'k': {'consumes': 1, 'produces': 1},
+            'p': {'consumes': 1, 'produces': 1},
+            'yo': {'consumes': 0, 'produces': 1},
+            'k2tog': {'consumes': 2, 'produces': 1},
+            'p2tog': {'consumes': 2, 'produces': 1},
+            'ssk': {'consumes': 2, 'produces': 1},
+            'kfb': {'consumes': 1, 'produces': 2},
+            'pfb': {'consumes': 1, 'produces': 2},
+            'm1': {'consumes': 0, 'produces': 1},
+            'sl': {'consumes': 1, 'produces': 1},
+            's': {'consumes': 1, 'produces': 1}
+        }
+        
+        # Track consumed and produced stitches
+        total_consumed = 0
+        total_produced = 0
         
         for op in parsed_ops:
             stitch_type = op["stitch"]
             count = op["count"]
             
-            # Calculate stitch count changes
-            if stitch_type in ["k2tog", "s2k", "sk", "sl"]:
-                # These decrease stitch count by 1 per occurrence
-                current_stitches -= count
-            elif stitch_type in ["yo", "inc"]:
-                # These increase stitch count by 1 per occurrence
-                current_stitches += count
-            elif stitch_type in ["k", "p", "m1", "m1l", "m1r"]:
-                # These don't change stitch count
-                pass
-            else:
-                # For unknown stitch types, we'll assume they don't change stitch count
-                pass
+            if stitch_type not in stitch_behavior:
+                self.errors.append({
+                    "type": "syntax",
+                    "code": "E_UNKNOWN_STITCH",
+                    "message": f"Unknown stitch type: {stitch_type}",
+                    "line": self.line_map.get(row_num, None),
+                    "row": row_num
+                })
+                continue
+            
+            behavior = stitch_behavior[stitch_type]
+            total_consumed += behavior['consumes'] * count
+            total_produced += behavior['produces'] * count
         
-        return current_stitches
+        # Check for stitch count errors
+        if total_consumed > start_stitches:
+            self.errors.append({
+                "type": "stitch_count",
+                "code": "E_STITCH_OVERFLOW",
+                "message": f"Stitch overflow: consumed {total_consumed} stitches but only {start_stitches} available",
+                "line": self.line_map.get(row_num, None),
+                "row": row_num
+            })
+            return start_stitches  # Return original count on overflow
+        
+        if total_consumed < start_stitches:
+            self.errors.append({
+                "type": "stitch_count",
+                "code": "E_STITCH_UNDERFLOW",
+                "message": f"Stitch underflow: consumed {total_consumed} stitches but needed {start_stitches}",
+                "line": self.line_map.get(row_num, None),
+                "row": row_num
+            })
+            return start_stitches  # Return original count on underflow
+        
+        # Calculate final stitch count
+        end_stitches = start_stitches - total_consumed + total_produced
+        return end_stitches
     
     def expand_rows(self):
         """Expand rows with repeats"""
@@ -197,8 +346,8 @@ class KnittingCompiler:
         # Check for required fields
         if self.pattern_name is None:
             self.errors.append({
-                "type": "error",
-                "code": "MISSING_PATTERN",
+                "type": "validation",
+                "code": "E_MISSING_PATTERN_NAME",
                 "message": "Missing pattern name",
                 "line": None,
                 "row": None
@@ -206,8 +355,8 @@ class KnittingCompiler:
         
         if self.cast_on is None:
             self.errors.append({
-                "type": "error",
-                "code": "MISSING_CAST_ON",
+                "type": "validation",
+                "code": "E_MISSING_CAST_ON",
                 "message": "Missing cast_on value",
                 "line": None,
                 "row": None
@@ -229,7 +378,7 @@ class KnittingCompiler:
             start_stitches = current_stitches
             
             # Simulate the row
-            end_stitches = self.simulate_row(instruction, start_stitches)
+            end_stitches = self.simulate_row(instruction, start_stitches, row_num)
             
             # Parse instructions for detailed info
             parsed_instructions = self.parse_instruction(instruction)
@@ -287,6 +436,8 @@ def main():
     
     if not result["valid"]:
         sys.exit(1)
+    else:
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
